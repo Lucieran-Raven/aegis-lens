@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: aegis-lens
+data:
+  POSTGRES_DB: aegis
+  POSTGRES_USER: aegis
+  POSTGRES_HOST: postgres-service
+  POSTGRES_PORT: "5432"

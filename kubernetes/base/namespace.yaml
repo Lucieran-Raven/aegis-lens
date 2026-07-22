@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aegis-lens
+  labels:
+    name: aegis-lens
+    environment: production

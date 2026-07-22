@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: timescale-config
+  namespace: aegis-lens
+data:
+  POSTGRES_DB: aegis_metrics
+  POSTGRES_USER: aegis
+  POSTGRES_HOST: timescale-service
+  POSTGRES_PORT: "5432"
