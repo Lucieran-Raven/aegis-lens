@@ -1,0 +1,87 @@
+services:
+  # Redis - Caching and Pub/Sub
+  redis:
+    image: redis:7-alpine
+    container_name: aegis-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - aegis-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL - Relational Database
+  postgres:
+    image: postgres:15
+    container_name: aegis-postgres
+    environment:
+      POSTGRES_DB: aegis
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-aegis_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - aegis-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # TimescaleDB - Time-series Database for Metrics
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: aegis-timescale
+    environment:
+      POSTGRES_DB: aegis_metrics
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD:-aegis_dev_password}
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+    networks:
+      - aegis-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Neo4j - Graph Database for Knowledge Graph
+  neo4j:
+    image: neo4j:5
+    container_name: aegis-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-aegis_dev_password}
+      NEO4J_dbms_memory_heap_initial__size: 512m
+      NEO4J_dbms_memory_heap_max__size: 512m
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
+    networks:
+      - aegis-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  aegis-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:
+  timescale-data:
+  neo4j-data:
