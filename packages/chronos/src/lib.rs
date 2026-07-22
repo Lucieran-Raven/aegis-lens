@@ -4,9 +4,9 @@
 //! for detecting virtual machine/emulator environments through frame timing entropy.
 //! Compiled to WebAssembly for browser use.
 
-use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
+use wasm_bindgen::prelude::*;
 
 const WINDOW_SIZE: usize = 1000;
 const BASELINE_MEAN: f64 = 15.0;
@@ -180,10 +180,12 @@ impl ChronosEngine {
         if self.samples.is_empty() {
             return 0.0;
         }
-        let variance = self.samples
+        let variance = self
+            .samples
             .iter()
             .map(|&x| (x - mean).powi(2))
-            .sum::<f64>() / self.samples.len() as f64;
+            .sum::<f64>()
+            / self.samples.len() as f64;
         variance.sqrt()
     }
 
@@ -229,18 +231,13 @@ impl ChronosEngine {
         let q = p - 0.5;
         if q.abs() < 0.425 {
             let r = 0.180625 - q * q;
-            q * (((((r * 2509.0809287301726 + 33430.055461283605) * r
-                + 67265.77102700708)
-                * r
+            q * (((((r * 2509.0809287301726 + 33430.055461283605) * r + 67265.77102700708) * r
                 + 45921.95393154974)
                 * r
                 + 13731.69376550946)
                 * r
                 + 1971.59093630605)
-                / (((((r * 74545.60070509062 + 3160.0276147714)
-                    * r
-                    + 645.3837242968362)
-                    * r
+                / (((((r * 74545.60070509062 + 3160.0276147714) * r + 645.3837242968362) * r
                     + 64.25398732275436)
                     * r
                     + 2.506628277459239)
@@ -250,17 +247,13 @@ impl ChronosEngine {
             let r = if q <= 0.0 { p } else { 1.0 - p };
             let r = (-r.ln()).sqrt();
             let sign = if q <= 0.0 { -1.0 } else { 1.0 };
-            sign * (((((r * 2.506628277459239 + 18.415189774310226) * r
-                + 41.39119773534693)
-                * r
+            sign * (((((r * 2.506628277459239 + 18.415189774310226) * r + 41.39119773534693) * r
                 + 25.441070498102005)
                 * r
                 + 8.573328740300752)
                 * r
                 + 2.506628277459239)
-                / (((((r * 1.421413741165613 + 2.754280290577424) * r
-                    + 1.932026905652153)
-                    * r
+                / (((((r * 1.421413741165613 + 2.754280290577424) * r + 1.932026905652153) * r
                     + 2.767668024802236)
                     * r
                     + 3.530889347551922)
