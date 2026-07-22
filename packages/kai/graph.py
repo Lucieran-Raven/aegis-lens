@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 @dataclass
 class Node:
     """Represents a node in the knowledge graph"""
+
     id: str
     label: str
     properties: Dict[str, any]
@@ -23,6 +24,7 @@ class Node:
 @dataclass
 class Edge:
     """Represents an edge in the knowledge graph"""
+
     id: str
     source: str
     target: str
@@ -43,6 +45,7 @@ class Edge:
 @dataclass
 class KnowledgeGraph:
     """Represents a knowledge graph"""
+
     nodes: List[Node]
     edges: List[Edge]
 

@@ -8,6 +8,7 @@ from datetime import datetime
 @dataclass
 class ScrapedData:
     """Represents scraped data"""
+
     url: str
     title: str
     content: str
@@ -28,6 +29,7 @@ class ScrapedData:
 @dataclass
 class ScrapingResult:
     """Result of a scraping operation"""
+
     success: bool
     data: Optional[ScrapedData]
     error: Optional[str]

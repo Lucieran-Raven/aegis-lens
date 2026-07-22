@@ -2,6 +2,7 @@
 
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
@@ -74,7 +75,7 @@ def test_get_ready_tasks():
     )
     workflow.add_task(task1)
     workflow.add_task(task2)
-    
+
     ready = workflow.get_ready_tasks()
     assert len(ready) == 1
     assert ready[0].id == "task-1"

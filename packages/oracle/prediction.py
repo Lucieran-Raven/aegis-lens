@@ -8,6 +8,7 @@ from datetime import datetime
 @dataclass
 class Prediction:
     """Represents a prediction result"""
+
     target: str
     predicted_value: float
     confidence: float
@@ -26,6 +27,7 @@ class Prediction:
 @dataclass
 class Forecast:
     """Represents a forecast with multiple predictions"""
+
     target: str
     predictions: List[Prediction]
     model_version: str

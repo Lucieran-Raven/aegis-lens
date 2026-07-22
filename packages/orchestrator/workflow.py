@@ -8,6 +8,7 @@ from datetime import datetime
 
 class TaskStatus(Enum):
     """Task status enum"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -17,6 +18,7 @@ class TaskStatus(Enum):
 @dataclass
 class Task:
     """Represents a task in a workflow"""
+
     id: str
     name: str
     status: TaskStatus
@@ -32,6 +34,7 @@ class Task:
 @dataclass
 class Workflow:
     """Represents a workflow of tasks"""
+
     id: str
     name: str
     tasks: List[Task]
@@ -52,6 +55,7 @@ class Workflow:
         """Get tasks that are ready to execute"""
         completed = {t.id for t in self.tasks if t.status == TaskStatus.COMPLETED}
         return [
-            t for t in self.tasks
+            t
+            for t in self.tasks
             if t.status == TaskStatus.PENDING and t.can_execute(completed)
         ]

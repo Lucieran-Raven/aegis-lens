@@ -7,6 +7,7 @@ from typing import Optional
 @dataclass
 class BiometricData:
     """Represents biometric data"""
+
     user_id: str
     biometric_type: str
     data_hash: str
@@ -20,6 +21,7 @@ class BiometricData:
 @dataclass
 class AuthenticationResult:
     """Result of biometric authentication"""
+
     success: bool
     user_id: str
     confidence: float

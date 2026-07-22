@@ -7,6 +7,7 @@ from typing import Optional
 
 class Sentiment(Enum):
     """Sentiment categories"""
+
     POSITIVE = "positive"
     NEGATIVE = "negative"
     NEUTRAL = "neutral"
@@ -15,6 +16,7 @@ class Sentiment(Enum):
 @dataclass
 class SentimentResult:
     """Result of sentiment analysis"""
+
     text: str
     sentiment: Sentiment
     confidence: float
