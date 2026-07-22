@@ -1,0 +1,28 @@
+{
+  "name": "@aegis-lens/chronos-js",
+  "version": "0.1.0",
+  "description": "CHRONOS JavaScript integration for jitter measurement and anomaly detection",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "types": "./index.d.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "build:wasm": "cd .. && ./build.sh",
+    "dev": "vite"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^1.0.0",
+    "jsdom": "^29.1.1",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "vite": "^5.0.0"
+  }
+}
