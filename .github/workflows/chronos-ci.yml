@@ -1,0 +1,250 @@
+name: CHRONOS CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'packages/chronos/**'
+      - '.github/workflows/chronos-ci.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'packages/chronos/**'
+      - '.github/workflows/chronos-ci.yml'
+
+jobs:
+  rust-tests:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo index
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Run Rust tests
+        run: |
+          cd packages/chronos
+          cargo test --verbose
+      
+      - name: Run Rust clippy
+        run: |
+          cd packages/chronos
+          cargo clippy -- -D warnings
+      
+      - name: Check formatting
+        run: |
+          cd packages/chronos
+          cargo fmt -- --check
+
+  wasm-build:
+    name: WASM Build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      
+      - name: Install wasm-pack
+        run: |
+          cargo install wasm-pack
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache cargo build
+        uses: actions/cache@v3
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build WASM
+        run: |
+          cd packages/chronos
+          wasm-pack build --target web --out-dir pkg --release
+      
+      - name: Check WASM size
+        run: |
+          cd packages/chronos/pkg
+          WASM_SIZE=$(wc -c < chronos_bg.wasm)
+          echo "WASM size: $WASM_SIZE bytes"
+          if [ $WASM_SIZE -gt 100000 ]; then
+            echo "WASM size exceeds 100KB limit"
+            exit 1
+          fi
+
+  js-tests:
+    name: JavaScript Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: packages/chronos/js/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd packages/chronos/js
+          npm ci
+      
+      - name: Build WASM first
+        run: |
+          cd packages/chronos
+          cargo install wasm-pack
+          rustup target add wasm32-unknown-unknown
+          wasm-pack build --target web --out-dir pkg --release
+      
+      - name: Run JS tests
+        run: |
+          cd packages/chronos/js
+          npm test -- --run
+      
+      - name: Generate coverage
+        run: |
+          cd packages/chronos/js
+          npm test -- --coverage
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: packages/chronos/js/coverage/lcov.info
+          flags: chronos-js
+          name: chronos-js-coverage
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [rust-tests, wasm-build, js-tests]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install wasm-pack
+        run: |
+          cargo install wasm-pack
+          rustup target add wasm32-unknown-unknown
+      
+      - name: Build WASM
+        run: |
+          cd packages/chronos
+          wasm-pack build --target web --out-dir pkg --release
+      
+      - name: Install JS dependencies
+        run: |
+          cd packages/chronos/js
+          npm ci
+      
+      - name: Run all tests
+        run: |
+          cd packages/chronos
+          cargo test
+          cd js
+          npm test -- --run
+      
+      - name: Verify WASM package
+        run: |
+          cd packages/chronos/pkg
+          test -f chronos_bg.wasm
+          test -f chronos.js
+          test -f chronos.d.ts
+          test -f package.json
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      
+      - name: Run cargo audit
+        run: |
+          cd packages/chronos
+          cargo install cargo-audit
+          cargo audit
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Run npm audit
+        run: |
+          cd packages/chronos/js
+          npm ci
+          npm audit --audit-level=moderate
+
+  performance:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      
+      - name: Run benchmarks
+        run: |
+          cd packages/chronos
+          cargo test --release -- --nocapture --test-threads=1
