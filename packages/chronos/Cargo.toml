@@ -6,8 +6,23 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
-tokio.workspace = true
+wasm-bindgen = "0.2"
+js-sys = "0.3"
 serde.workspace = true
-serde_json.workspace = true
+serde-wasm-bindgen = "0.4"
 chrono.workspace = true
+rand = { version = "0.8", features = ["small_rng"] }
+getrandom = { version = "0.2", features = ["js"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz", "--enable-mutable-globals"]
