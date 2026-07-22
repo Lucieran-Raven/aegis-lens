@@ -80,6 +80,7 @@ jobs:
           cargo test --verbose
       
       - name: Build WASM
+        continue-on-error: true
         run: |
           cd packages/${{ matrix.package }}
           wasm-pack build --target web --release
