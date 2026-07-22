@@ -1,0 +1,46 @@
+{
+  "name": "aegis-lens",
+  "version": "0.1.0",
+  "description": "Aegis Lens - AI-Powered Recruitment Intelligence Platform",
+  "private": true,
+  "workspaces": [
+    "packages/candidate-ui",
+    "packages/hr-dashboard",
+    "packages/signaling"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "type-check": "npm run type-check --workspaces",
+    "clean": "npm run clean --workspaces && rm -rf node_modules",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "prettier": "^3.0.0",
+    "eslint": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lucieran-Raven/aegis-lens.git"
+  },
+  "author": "Aegis Lens Team",
+  "license": "MIT",
+  "keywords": [
+    "recruitment",
+    "ai",
+    "intelligence",
+    "hr",
+    "candidate-tracking",
+    "knowledge-graph"
+  ]
+}
