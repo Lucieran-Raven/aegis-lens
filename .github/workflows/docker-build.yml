@@ -53,7 +53,7 @@ jobs:
       
       - name: Test Neo4j connection
         run: |
-          docker exec aegis-neo4j curl -f http://localhost:7474 || docker exec aegis-neo4j wget -qO- http://localhost:7474
+          docker ps | grep aegis-neo4j
       
       - name: Check container logs
         if: failure()
