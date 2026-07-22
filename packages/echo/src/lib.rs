@@ -39,10 +39,10 @@ pub struct ChirpConfig {
 impl Default for ChirpConfig {
     fn default() -> Self {
         Self {
-            start_frequency: 1000.0,  // 1 kHz
-            end_frequency: 8000.0,    // 8 kHz
-            duration: 0.1,            // 100 ms
-            sample_rate: 44100.0,     // 44.1 kHz
+            start_frequency: 1000.0, // 1 kHz
+            end_frequency: 8000.0,   // 8 kHz
+            duration: 0.1,           // 100 ms
+            sample_rate: 44100.0,    // 44.1 kHz
         }
     }
 }
@@ -122,10 +122,9 @@ impl EchoEngine {
 
         for i in 0..num_samples {
             let t = i as f64 / config.sample_rate;
-            let phase = 2.0 * std::f64::consts::PI * (
-                config.start_frequency * t +
-                freq_slope * t * t / 2.0
-            );
+            let phase = 2.0
+                * std::f64::consts::PI
+                * (config.start_frequency * t + freq_slope * t * t / 2.0);
             samples.push(phase.sin() as f32);
         }
 
@@ -229,7 +228,13 @@ impl EchoEngine {
     /// Generate a linear chirp signal
     /// Returns the chirp signal as a JsValue
     #[wasm_bindgen]
-    pub fn generate_chirp(&self, start_freq: f64, end_freq: f64, duration: f64, sample_rate: f64) -> JsValue {
+    pub fn generate_chirp(
+        &self,
+        start_freq: f64,
+        end_freq: f64,
+        duration: f64,
+        sample_rate: f64,
+    ) -> JsValue {
         let config = ChirpConfig {
             start_frequency: start_freq,
             end_frequency: end_freq,
@@ -274,7 +279,12 @@ impl EchoEngine {
             return 0.0;
         }
         let sum: f64 = self.samples.iter().sum();
-        let weighted_sum: f64 = self.samples.iter().enumerate().map(|(i, &x)| i as f64 * x).sum();
+        let weighted_sum: f64 = self
+            .samples
+            .iter()
+            .enumerate()
+            .map(|(i, &x)| i as f64 * x)
+            .sum();
         if sum < 1e-10 {
             return 0.0;
         }
@@ -287,9 +297,7 @@ impl EchoEngine {
             return 0.0;
         }
         let samples: Vec<f64> = self.samples.iter().cloned().collect();
-        let crossings = samples.windows(2)
-            .filter(|w| w[0] * w[1] < 0.0)
-            .count();
+        let crossings = samples.windows(2).filter(|w| w[0] * w[1] < 0.0).count();
         crossings as f64 / samples.len() as f64
     }
 
