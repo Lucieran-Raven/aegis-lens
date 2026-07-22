@@ -1,0 +1,85 @@
+# AEGIS LENS - Production Dockerfile
+# Multi-stage build for optimized production image
+
+# Stage 1: Build CHRONOS WASM
+FROM rust:1.75-slim AS chronos-builder
+
+WORKDIR /build
+
+# Install wasm-pack
+RUN cargo install wasm-pack
+
+# Copy CHRONOS source
+COPY packages/chronos .
+
+# Build WASM package
+RUN wasm-pack build --target web --out-dir pkg --release
+
+# Stage 2: Build frontend assets
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /build
+
+# Copy package files
+COPY packages/chronos/js/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source and build
+COPY packages/chronos/js ./
+RUN npm run build
+
+# Stage 3: Production Python image
+FROM python:3.11-slim AS production
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PATH="/app/.venv/bin:$PATH"
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies to virtual environment
+RUN python -m venv .venv && \
+    pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Copy built artifacts from previous stages
+COPY --from=chronos-builder --chown=appuser:appuser /build/pkg ./packages/chronos/pkg
+COPY --from=frontend-builder --chown=appuser:appuser /build/dist ./packages/chronos/js/dist
+
+# Create necessary directories
+RUN mkdir -p logs uploads && \
+    chown -R appuser:appuser logs uploads
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Production command
+CMD ["gunicorn", "main:app", "--bind", "0.0.0.0:8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker"]
