@@ -1,0 +1,53 @@
+# AEGIS LENS - Development Dockerfile
+# Optimized for development with hot-reload and debugging
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    curl \
+    git \
+    vim \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+COPY packages/chronos/js/package.json ./packages/chronos/js/
+
+# Install Python dependencies
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
+
+# Install Node.js dependencies for CHRONOS
+RUN cd packages/chronos/js && npm install
+
+# Install Rust and wasm-pack for CHRONOS
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN cargo install wasm-pack
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p logs uploads
+
+# Expose ports
+EXPOSE 8000 3000
+
+# Development command with hot-reload
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
