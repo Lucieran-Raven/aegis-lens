@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd packages/${{ matrix.package }}
-          npm ci
+          npm install
       
       - name: Run linter
         run: |
