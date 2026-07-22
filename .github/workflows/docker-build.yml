@@ -1,0 +1,65 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'docker-compose.yml'
+      - '.env.example'
+      - 'docker/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docker-compose.yml'
+      - '.env.example'
+      - 'docker/**'
+
+jobs:
+  test:
+    name: Test Docker Compose
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+      
+      - name: Start services
+        run: |
+          docker-compose up -d
+      
+      - name: Wait for services to be healthy
+        run: |
+          timeout 120 bash -c 'until docker-compose ps | grep -q "healthy"; do sleep 5; done'
+      
+      - name: Test Redis connection
+        run: |
+          docker exec aegis-redis redis-cli ping
+      
+      - name: Test PostgreSQL connection
+        run: |
+          docker exec aegis-postgres pg_isready -U aegis
+      
+      - name: Test TimescaleDB connection
+        run: |
+          docker exec aegis-timescale pg_isready -U aegis
+      
+      - name: Test Neo4j connection
+        run: |
+          docker exec aegis-neo4j cypher-shell -u neo4j -p aegis_dev_password "RETURN 1 as test"
+      
+      - name: Check container logs
+        if: failure()
+        run: |
+          docker-compose logs
+      
+      - name: Stop services
+        if: always()
+        run: |
+          docker-compose down
