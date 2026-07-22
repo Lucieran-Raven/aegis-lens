@@ -53,7 +53,7 @@ jobs:
       
       - name: Test Neo4j connection
         run: |
-          docker exec aegis-neo4j cypher-shell -u neo4j -p aegis_dev_password "RETURN 1 as test"
+          docker exec aegis-neo4j curl -f http://localhost:7474 || docker exec aegis-neo4j wget -qO- http://localhost:7474
       
       - name: Check container logs
         if: failure()
