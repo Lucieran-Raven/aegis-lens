@@ -33,6 +33,12 @@ pub struct ChronosEngine {
     samples: VecDeque<f64>,
 }
 
+impl Default for ChronosEngine {
+    fn default() -> Self {
+        Self::new_native()
+    }
+}
+
 impl ChronosEngine {
     /// Create a new CHRONOS engine (native)
     pub fn new_native() -> Self {
@@ -211,7 +217,7 @@ impl ChronosEngine {
         if denominator < 1e-10 {
             return 1.0;
         }
-        (numerator / denominator).max(0.0).min(1.0)
+        (numerator / denominator).clamp(0.0, 1.0)
     }
 
     fn normal_inv_cdf(&self, p: f64) -> f64 {
@@ -290,11 +296,11 @@ impl ChronosEngine {
             score -= 0.5;
         }
 
-        if mean < 0.1 || mean > 50.0 {
+        if !(0.1..=50.0).contains(&mean) {
             score -= 0.3;
         }
 
-        if std < 0.5 || std > 10.0 {
+        if !(0.5..=10.0).contains(&std) {
             score -= 0.2;
         }
 
@@ -302,7 +308,7 @@ impl ChronosEngine {
             score -= 0.1;
         }
 
-        score.max(0.0).min(1.0)
+        score.clamp(0.0, 1.0)
     }
 
     fn determine_status(&self, score: f64) -> String {
