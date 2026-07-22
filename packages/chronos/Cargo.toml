@@ -18,6 +18,13 @@ chrono.workspace = true
 rand = { version = "0.8", features = ["small_rng"] }
 getrandom = { version = "0.2", features = ["js"] }
 
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "performance"
+harness = false
+
 [profile.release]
 opt-level = "z"
 lto = true

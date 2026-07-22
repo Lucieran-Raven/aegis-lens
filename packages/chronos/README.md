@@ -187,8 +187,11 @@ npm test
 
 ## Performance
 
-- **Measurement overhead**: < 1μs per sample
-- **Analysis time**: < 1ms for 1000 samples
+- **Measurement overhead**: ~99ns per sample
+- **Analysis time**: ~35μs for 1000 samples
+- **Full workflow**: ~12μs for 100 samples
+- **Sample count query**: ~350ps
+- **Clear operation**: ~45μs
 - **Memory usage**: ~8KB for 1000 samples
 - **WASM size**: ~36KB (gzipped)
 
