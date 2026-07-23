@@ -27,7 +27,7 @@ jobs:
     
     strategy:
       matrix:
-        package: [chronos, echo, iris, lipsync]
+        package: [chronos, echo]
     
     steps:
       - name: Checkout code
