@@ -213,6 +213,35 @@ export function isAudioReady() {
 }
 
 /**
+ * Perform FFT-based cross-correlation between two signals
+ * @param {Float32Array} signal1 - First signal
+ * @param {Float32Array} signal2 - Second signal
+ * @returns {Float32Array} Cross-correlation result
+ */
+export function crossCorrelationFFT(signal1, signal2) {
+  if (!isInitialized || !engine) {
+    throw new Error('ECHO engine not initialized. Call initEcho() first.');
+  }
+
+  const correlation = engine.cross_correlation_fft(signal1, signal2);
+  return new Float32Array(correlation);
+}
+
+/**
+ * Find the lag with maximum correlation
+ * @param {Float32Array} correlation - Cross-correlation result
+ * @returns {Object} Object with lag and value properties
+ */
+export function findPeakLag(correlation) {
+  if (!isInitialized || !engine) {
+    throw new Error('ECHO engine not initialized. Call initEcho() first.');
+  }
+
+  const result = engine.find_peak_lag(correlation);
+  return JSON.parse(result);
+}
+
+/**
  * Get engine status
  * @returns {Object} Status information
  */
@@ -240,6 +269,8 @@ if (typeof window !== 'undefined') {
     clearSamples,
     isReady,
     isAudioReady,
+    crossCorrelationFFT,
+    findPeakLag,
     getStatus
   };
 }

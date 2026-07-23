@@ -37,6 +37,14 @@ vi.mock('../pkg/echo.js', () => {
         duration: 0.1,
         sampleRate: 44100.0
       }
+    })),
+    cross_correlation_fft: vi.fn((signal1, signal2) => {
+      const n = signal1.length + signal2.length - 1;
+      return new Float32Array(n).fill(0).map((_, i) => i === 0 ? 1.0 : 0.0);
+    }),
+    find_peak_lag: vi.fn((correlation) => JSON.stringify({
+      lag: 0,
+      value: 1.0
     }))
   }));
 
@@ -60,6 +68,8 @@ import {
   clearSamples,
   isReady,
   isAudioReady,
+  crossCorrelationFFT,
+  findPeakLag,
   getStatus
 } from './index.js';
 
@@ -152,5 +162,24 @@ describe('ECHO JS Integration', () => {
 
   it('should check audio readiness', () => {
     expect(isAudioReady()).toBe(false);
+  });
+
+  it('should perform FFT cross-correlation', () => {
+    const signal1 = new Float32Array([1.0, 2.0, 3.0]);
+    const signal2 = new Float32Array([1.0, 2.0, 3.0]);
+    const correlation = crossCorrelationFFT(signal1, signal2);
+
+    expect(correlation).toBeInstanceOf(Float32Array);
+    expect(correlation.length).toBe(signal1.length + signal2.length - 1);
+  });
+
+  it('should find peak lag in correlation', () => {
+    const correlation = new Float32Array([1.0, 5.0, 3.0, 2.0]);
+    const peak = findPeakLag(correlation);
+
+    expect(peak).toHaveProperty('lag');
+    expect(peak).toHaveProperty('value');
+    expect(typeof peak.lag).toBe('number');
+    expect(typeof peak.value).toBe('number');
   });
 });

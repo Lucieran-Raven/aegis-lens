@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use wasm_bindgen::prelude::*;
 
+#[cfg(not(target_arch = "wasm32"))]
+use rustfft::{FftPlanner, num_complex::Complex};
+
 const WINDOW_SIZE: usize = 1000;
 const BASELINE_VARIANCE: f64 = 0.1;
 const THRESHOLD_CLEAR: f64 = 0.8;
@@ -73,6 +76,121 @@ impl EchoEngine {
         Self {
             samples: VecDeque::with_capacity(WINDOW_SIZE),
         }
+    }
+
+    /// Perform FFT-based cross-correlation between two signals (native)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn cross_correlation_fft_native(signal1: &[f32], signal2: &[f32]) -> Vec<f32> {
+        if signal1.is_empty() || signal2.is_empty() {
+            return Vec::new();
+        }
+
+        // Pad signals to next power of 2 for efficient FFT
+        let n = signal1.len() + signal2.len() - 1;
+        let fft_size = n.next_power_of_two();
+
+        // Prepare complex arrays
+        let mut fft1: Vec<Complex<f64>> = vec![Complex::new(0.0, 0.0); fft_size];
+        let mut fft2: Vec<Complex<f64>> = vec![Complex::new(0.0, 0.0); fft_size];
+
+        // Load signal1 and zero-pad
+        for (i, &val) in signal1.iter().enumerate() {
+            fft1[i] = Complex::new(val as f64, 0.0);
+        }
+
+        // Load signal2 and zero-pad
+        for (i, &val) in signal2.iter().enumerate() {
+            fft2[i] = Complex::new(val as f64, 0.0);
+        }
+
+        // Perform FFT
+        let mut planner = FftPlanner::new();
+        let fft = planner.plan_fft_forward(fft_size);
+        fft.process(&mut fft1);
+        fft.process(&mut fft2);
+
+        // Multiply in frequency domain (signal1 * conjugate(signal2))
+        for i in 0..fft_size {
+            fft1[i] = fft1[i] * fft2[i].conj();
+        }
+
+        // Perform inverse FFT
+        let ifft = planner.plan_fft_inverse(fft_size);
+        ifft.process(&mut fft1);
+
+        // Extract real part and normalize
+        let mut result = Vec::with_capacity(n);
+        for i in 0..n {
+            result.push((fft1[i].re / fft_size as f64) as f32);
+        }
+
+        result
+    }
+
+    /// Perform FFT-based cross-correlation between two signals (WASM fallback)
+    #[cfg(target_arch = "wasm32")]
+    pub fn cross_correlation_fft_native(signal1: &[f32], signal2: &[f32]) -> Vec<f32> {
+        // Fallback: simple time-domain cross-correlation for WASM
+        // This is less efficient but works without rustfft
+        if signal1.is_empty() || signal2.is_empty() {
+            return Vec::new();
+        }
+
+        let n = signal1.len() + signal2.len() - 1;
+        let mut result = vec![0.0f32; n];
+
+        for lag in 0..n {
+            let mut sum = 0.0f32;
+            for i in 0..signal1.len() {
+                let j = lag as i32 - i as i32;
+                if j >= 0 && (j as usize) < signal2.len() {
+                    sum += signal1[i] * signal2[j as usize];
+                }
+            }
+            result[lag] = sum;
+        }
+
+        result
+    }
+
+    /// Find the lag with maximum correlation (native)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn find_peak_lag_native(correlation: &[f32]) -> (usize, f32) {
+        if correlation.is_empty() {
+            return (0, 0.0);
+        }
+
+        let mut max_val = correlation[0].abs();
+        let mut max_idx = 0;
+
+        for (i, &val) in correlation.iter().enumerate() {
+            if val.abs() > max_val {
+                max_val = val.abs();
+                max_idx = i;
+            }
+        }
+
+        (max_idx, max_val)
+    }
+
+    /// Find the lag with maximum correlation (WASM fallback)
+    #[cfg(target_arch = "wasm32")]
+    pub fn find_peak_lag_native(correlation: &[f32]) -> (usize, f32) {
+        if correlation.is_empty() {
+            return (0, 0.0);
+        }
+
+        let mut max_val = correlation[0].abs();
+        let mut max_idx = 0;
+
+        for (i, &val) in correlation.iter().enumerate() {
+            if val.abs() > max_val {
+                max_val = val.abs();
+                max_idx = i;
+            }
+        }
+
+        (max_idx, max_val)
     }
 
     /// Perform full analysis and return result (native)
@@ -251,6 +369,23 @@ impl EchoEngine {
         let config = ChirpConfig::default();
         let signal = self.generate_chirp_native(&config);
         serde_wasm_bindgen::to_value(&signal).unwrap()
+    }
+
+    /// Perform FFT-based cross-correlation between two signals
+    /// Returns the correlation result as a JsValue array
+    #[wasm_bindgen]
+    pub fn cross_correlation_fft(&self, signal1: &[f32], signal2: &[f32]) -> JsValue {
+        let correlation = Self::cross_correlation_fft_native(signal1, signal2);
+        serde_wasm_bindgen::to_value(&correlation).unwrap()
+    }
+
+    /// Find the lag with maximum correlation
+    /// Returns a JsValue object with { lag: usize, value: f32 }
+    #[wasm_bindgen]
+    pub fn find_peak_lag(&self, correlation: &[f32]) -> JsValue {
+        let (lag, value) = Self::find_peak_lag_native(correlation);
+        let result = serde_json::json!({ "lag": lag, "value": value });
+        serde_wasm_bindgen::to_value(&result).unwrap()
     }
 
     fn calculate_mean(&self) -> f64 {
@@ -479,5 +614,69 @@ mod tests {
 
         // Due to the chirp, the means should be close to 0 but the signal should vary
         assert!((first_mean - second_mean).abs() < 0.5);
+    }
+
+    #[test]
+    fn test_cross_correlation_fft_empty() {
+        let result = EchoEngine::cross_correlation_fft_native(&[], &[1.0, 2.0, 3.0]);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_cross_correlation_fft_simple() {
+        let signal1 = vec![1.0, 2.0, 3.0];
+        let signal2 = vec![1.0, 2.0, 3.0];
+        let result = EchoEngine::cross_correlation_fft_native(&signal1, &signal2);
+
+        // Result should have length n1 + n2 - 1
+        assert_eq!(result.len(), signal1.len() + signal2.len() - 1);
+
+        // The peak should be at lag 0 for identical signals
+        let (lag, value) = EchoEngine::find_peak_lag_native(&result);
+        assert_eq!(lag, 0);
+        assert!(value > 0.0);
+    }
+
+    #[test]
+    fn test_cross_correlation_fft_shifted() {
+        let signal1 = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+        let signal2 = vec![1.0, 2.0, 3.0, 4.0, 5.0, 0.0, 0.0];
+        let result = EchoEngine::cross_correlation_fft_native(&signal1, &signal2);
+
+        // The peak should be at lag 0 (signals are aligned at start)
+        let (lag, value) = EchoEngine::find_peak_lag_native(&result);
+        assert_eq!(lag, 0);
+        assert!(value > 0.0);
+    }
+
+    #[test]
+    fn test_find_peak_lag_empty() {
+        let (lag, value) = EchoEngine::find_peak_lag_native(&[]);
+        assert_eq!(lag, 0);
+        assert_eq!(value, 0.0);
+    }
+
+    #[test]
+    fn test_find_peak_lag_single() {
+        let correlation = vec![5.0];
+        let (lag, value) = EchoEngine::find_peak_lag_native(&correlation);
+        assert_eq!(lag, 0);
+        assert_eq!(value, 5.0);
+    }
+
+    #[test]
+    fn test_find_peak_lag_multiple() {
+        let correlation = vec![1.0, 5.0, 3.0, 2.0];
+        let (lag, value) = EchoEngine::find_peak_lag_native(&correlation);
+        assert_eq!(lag, 1);
+        assert_eq!(value, 5.0);
+    }
+
+    #[test]
+    fn test_find_peak_lag_negative() {
+        let correlation = vec![1.0, -5.0, 3.0, 2.0];
+        let (lag, value) = EchoEngine::find_peak_lag_native(&correlation);
+        assert_eq!(lag, 1);
+        assert_eq!(value, 5.0); // Should use absolute value
     }
 }
