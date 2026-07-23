@@ -8,6 +8,7 @@ on:
       - 'packages/echo/**'
       - 'packages/iris/**'
       - 'packages/lipsync/**'
+      - 'docs/**'
   pull_request:
     branches: [main, develop]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'packages/echo/**'
       - 'packages/iris/**'
       - 'packages/lipsync/**'
+      - 'docs/**'
   workflow_dispatch:
 
 env:
