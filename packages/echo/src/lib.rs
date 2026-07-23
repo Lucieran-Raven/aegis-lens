@@ -110,8 +110,8 @@ impl EchoEngine {
         fft.process(&mut fft2);
 
         // Multiply in frequency domain (signal1 * conjugate(signal2))
-        for i in 0..fft_size {
-            fft1[i] = fft1[i] * fft2[i].conj();
+        for (i, fft1_val) in fft1.iter_mut().enumerate().take(fft_size) {
+            *fft1_val *= fft2[i].conj();
         }
 
         // Perform inverse FFT
@@ -120,8 +120,8 @@ impl EchoEngine {
 
         // Extract real part and normalize
         let mut result = Vec::with_capacity(n);
-        for i in 0..n {
-            result.push((fft1[i].re / fft_size as f64) as f32);
+        for fft1_val in fft1.iter().take(n) {
+            result.push((fft1_val.re / fft_size as f64) as f32);
         }
 
         result
