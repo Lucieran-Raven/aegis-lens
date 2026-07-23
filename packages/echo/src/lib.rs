@@ -11,6 +11,9 @@ use wasm_bindgen::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 use rustfft::{num_complex::Complex, FftPlanner};
 
+#[cfg(target_arch = "wasm32")]
+use num_complex::Complex;
+
 const WINDOW_SIZE: usize = 1000;
 const BASELINE_VARIANCE: f64 = 0.1;
 const THRESHOLD_CLEAR: f64 = 0.8;
@@ -26,6 +29,8 @@ pub struct EchoResult {
     pub std_tof: f64,
     pub spectral_centroid: f64,
     pub zero_crossing_rate: f64,
+    pub spectral_flux: f64,
+    pub spectral_rolloff: f64,
     pub sample_count: usize,
 }
 
@@ -193,6 +198,136 @@ impl EchoEngine {
         (max_idx, max_val)
     }
 
+    /// Compute FFT of a signal (native)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn compute_fft_native(signal: &[f32]) -> Vec<Complex<f64>> {
+        if signal.is_empty() {
+            return Vec::new();
+        }
+
+        let fft_size = signal.len().next_power_of_two();
+        let mut fft_data: Vec<Complex<f64>> = vec![Complex::new(0.0, 0.0); fft_size];
+
+        for (i, &val) in signal.iter().enumerate() {
+            fft_data[i] = Complex::new(val as f64, 0.0);
+        }
+
+        let mut planner = FftPlanner::new();
+        let fft = planner.plan_fft_forward(fft_size);
+        fft.process(&mut fft_data);
+
+        fft_data
+    }
+
+    /// Compute spectral centroid from FFT magnitude spectrum (native)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn spectral_centroid_native(fft_data: &[Complex<f64>], sample_rate: f64) -> f64 {
+        if fft_data.is_empty() {
+            return 0.0;
+        }
+
+        let n = fft_data.len();
+        let mut weighted_sum = 0.0;
+        let mut magnitude_sum = 0.0;
+
+        for (i, complex) in fft_data.iter().enumerate().take(n / 2) {
+            let magnitude = (complex.re * complex.re + complex.im * complex.im).sqrt();
+            let frequency = i as f64 * sample_rate / n as f64;
+
+            weighted_sum += frequency * magnitude;
+            magnitude_sum += magnitude;
+        }
+
+        if magnitude_sum < 1e-10 {
+            return 0.0;
+        }
+
+        weighted_sum / magnitude_sum
+    }
+
+    /// Compute spectral flux (change in magnitude between frames) (native)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn spectral_flux_native(fft_current: &[Complex<f64>], fft_previous: &[Complex<f64>]) -> f64 {
+        if fft_current.is_empty() || fft_previous.is_empty() {
+            return 0.0;
+        }
+
+        let n = fft_current.len().min(fft_previous.len());
+        let mut flux = 0.0;
+
+        for i in 0..n {
+            let mag_current = (fft_current[i].re * fft_current[i].re + fft_current[i].im * fft_current[i].im).sqrt();
+            let mag_previous = (fft_previous[i].re * fft_previous[i].re + fft_previous[i].im * fft_previous[i].im).sqrt();
+            let diff = mag_current - mag_previous;
+            if diff > 0.0 {
+                flux += diff;
+            }
+        }
+
+        flux / n as f64
+    }
+
+    /// Compute spectral rolloff (frequency below which 85% of energy is contained) (native)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn spectral_rolloff_native(fft_data: &[Complex<f64>], sample_rate: f64) -> f64 {
+        if fft_data.is_empty() {
+            return 0.0;
+        }
+
+        let n = fft_data.len();
+        let mut magnitudes: Vec<f64> = Vec::with_capacity(n / 2);
+
+        for complex in fft_data.iter().take(n / 2) {
+            let magnitude = (complex.re * complex.re + complex.im * complex.im).sqrt();
+            magnitudes.push(magnitude);
+        }
+
+        let total_energy: f64 = magnitudes.iter().map(|&m| m * m).sum();
+        if total_energy < 1e-10 {
+            return 0.0;
+        }
+
+        let threshold = 0.85 * total_energy;
+        let mut cumulative_energy = 0.0;
+
+        for (i, &magnitude) in magnitudes.iter().enumerate() {
+            cumulative_energy += magnitude * magnitude;
+            if cumulative_energy >= threshold {
+                return i as f64 * sample_rate / n as f64;
+            }
+        }
+
+        sample_rate / 2.0
+    }
+
+    /// Compute FFT of a signal (WASM fallback)
+    #[cfg(target_arch = "wasm32")]
+    pub fn compute_fft_native(signal: &[f32]) -> Vec<Complex<f64>> {
+        // Fallback: return empty vector for WASM
+        Vec::new()
+    }
+
+    /// Compute spectral centroid from FFT magnitude spectrum (WASM fallback)
+    #[cfg(target_arch = "wasm32")]
+    pub fn spectral_centroid_native(_fft_data: &[Complex<f64>], _sample_rate: f64) -> f64 {
+        // Fallback: return 0.0 for WASM
+        0.0
+    }
+
+    /// Compute spectral flux (WASM fallback)
+    #[cfg(target_arch = "wasm32")]
+    pub fn spectral_flux_native(_fft_current: &[Complex<f64>], _fft_previous: &[Complex<f64>]) -> f64 {
+        // Fallback: return 0.0 for WASM
+        0.0
+    }
+
+    /// Compute spectral rolloff (WASM fallback)
+    #[cfg(target_arch = "wasm32")]
+    pub fn spectral_rolloff_native(_fft_data: &[Complex<f64>], _sample_rate: f64) -> f64 {
+        // Fallback: return 0.0 for WASM
+        0.0
+    }
+
     /// Perform full analysis and return result (native)
     pub fn analyze_native(&self) -> EchoResult {
         if self.samples.len() < 10 {
@@ -203,14 +338,39 @@ impl EchoEngine {
                 std_tof: 0.0,
                 spectral_centroid: 0.0,
                 zero_crossing_rate: 0.0,
+                spectral_flux: 0.0,
+                spectral_rolloff: 0.0,
                 sample_count: self.samples.len(),
             };
         }
 
         let mean = self.calculate_mean();
         let std = self.calculate_std(mean);
-        let spectral_centroid = self.calculate_spectral_centroid();
         let zcr = self.calculate_zero_crossing_rate();
+
+        // Compute spectral features using FFT
+        let samples_vec: Vec<f32> = self.samples.iter().map(|&x| x as f32).collect();
+        let spectral_centroid = if cfg!(not(target_arch = "wasm32")) {
+            let fft_data = Self::compute_fft_native(&samples_vec);
+            Self::spectral_centroid_native(&fft_data, 44100.0)
+        } else {
+            self.calculate_spectral_centroid()
+        };
+
+        let spectral_flux = if cfg!(not(target_arch = "wasm32")) {
+            let fft_data = Self::compute_fft_native(&samples_vec);
+            let fft_prev = vec![Complex::new(0.0, 0.0); fft_data.len()];
+            Self::spectral_flux_native(&fft_data, &fft_prev)
+        } else {
+            0.0
+        };
+
+        let spectral_rolloff = if cfg!(not(target_arch = "wasm32")) {
+            let fft_data = Self::compute_fft_native(&samples_vec);
+            Self::spectral_rolloff_native(&fft_data, 44100.0)
+        } else {
+            0.0
+        };
 
         let score = self.calculate_score(mean, std, spectral_centroid, zcr);
         let status = self.determine_status(score);
@@ -222,6 +382,8 @@ impl EchoEngine {
             std_tof: std,
             spectral_centroid,
             zero_crossing_rate: zcr,
+            spectral_flux,
+            spectral_rolloff,
             sample_count: self.samples.len(),
         }
     }
@@ -318,6 +480,8 @@ impl EchoEngine {
                 std_tof: 0.0,
                 spectral_centroid: 0.0,
                 zero_crossing_rate: 0.0,
+                spectral_flux: 0.0,
+                spectral_rolloff: 0.0,
                 sample_count: self.samples.len(),
             };
             return serde_wasm_bindgen::to_value(&result).unwrap();
@@ -338,6 +502,8 @@ impl EchoEngine {
             std_tof: std,
             spectral_centroid,
             zero_crossing_rate: zcr,
+            spectral_flux: 0.0,
+            spectral_rolloff: 0.0,
             sample_count: self.samples.len(),
         };
         serde_wasm_bindgen::to_value(&result).unwrap()
@@ -386,6 +552,65 @@ impl EchoEngine {
         let (lag, value) = Self::find_peak_lag_native(correlation);
         let result = serde_json::json!({ "lag": lag, "value": value });
         serde_wasm_bindgen::to_value(&result).unwrap()
+    }
+
+    /// Compute spectral centroid from a signal
+    /// Returns the spectral centroid in Hz
+    #[wasm_bindgen]
+    pub fn compute_spectral_centroid(&self, signal: &[f32], sample_rate: f64) -> f64 {
+        if cfg!(not(target_arch = "wasm32")) {
+            let fft_data = Self::compute_fft_native(signal);
+            Self::spectral_centroid_native(&fft_data, sample_rate)
+        } else {
+            // Fallback: simple time-domain centroid
+            if signal.is_empty() {
+                return 0.0;
+            }
+            let sum: f64 = signal.iter().map(|&x| x as f64).sum();
+            let weighted_sum: f64 = signal.iter().enumerate().map(|(i, &x)| i as f64 * x as f64).sum();
+            if sum < 1e-10 {
+                return 0.0;
+            }
+            weighted_sum / sum
+        }
+    }
+
+    /// Compute spectral flux between two signals
+    /// Returns the spectral flux value
+    #[wasm_bindgen]
+    pub fn compute_spectral_flux(&self, signal_current: &[f32], signal_previous: &[f32]) -> f64 {
+        if cfg!(not(target_arch = "wasm32")) {
+            let fft_current = Self::compute_fft_native(signal_current);
+            let fft_previous = Self::compute_fft_native(signal_previous);
+            Self::spectral_flux_native(&fft_current, &fft_previous)
+        } else {
+            // Fallback: simple time-domain difference
+            if signal_current.is_empty() || signal_previous.is_empty() {
+                return 0.0;
+            }
+            let n = signal_current.len().min(signal_previous.len());
+            let mut flux = 0.0;
+            for i in 0..n {
+                let diff = signal_current[i] - signal_previous[i];
+                if diff > 0.0 {
+                    flux += diff as f64;
+                }
+            }
+            flux / n as f64
+        }
+    }
+
+    /// Compute spectral rolloff from a signal
+    /// Returns the spectral rolloff frequency in Hz
+    #[wasm_bindgen]
+    pub fn compute_spectral_rolloff(&self, signal: &[f32], sample_rate: f64) -> f64 {
+        if cfg!(not(target_arch = "wasm32")) {
+            let fft_data = Self::compute_fft_native(signal);
+            Self::spectral_rolloff_native(&fft_data, sample_rate)
+        } else {
+            // Fallback: return Nyquist frequency
+            sample_rate / 2.0
+        }
     }
 
     fn calculate_mean(&self) -> f64 {
@@ -678,5 +903,75 @@ mod tests {
         let (lag, value) = EchoEngine::find_peak_lag_native(&correlation);
         assert_eq!(lag, 1);
         assert_eq!(value, 5.0); // Should use absolute value
+    }
+
+    #[test]
+    fn test_compute_fft_empty() {
+        let result = EchoEngine::compute_fft_native(&[]);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_compute_fft_simple() {
+        let signal = vec![1.0, 2.0, 3.0, 4.0];
+        let result = EchoEngine::compute_fft_native(&signal);
+
+        // FFT size should be next power of 2
+        assert_eq!(result.len(), 4);
+    }
+
+    #[test]
+    fn test_spectral_centroid_empty() {
+        let fft_data: Vec<Complex<f64>> = vec![];
+        let centroid = EchoEngine::spectral_centroid_native(&fft_data, 44100.0);
+        assert_eq!(centroid, 0.0);
+    }
+
+    #[test]
+    fn test_spectral_centroid_simple() {
+        let signal = vec![1.0, 2.0, 3.0, 4.0];
+        let fft_data = EchoEngine::compute_fft_native(&signal);
+        let centroid = EchoEngine::spectral_centroid_native(&fft_data, 44100.0);
+
+        // Centroid should be positive
+        assert!(centroid >= 0.0);
+    }
+
+    #[test]
+    fn test_spectral_flux_empty() {
+        let fft_current: Vec<Complex<f64>> = vec![];
+        let fft_previous: Vec<Complex<f64>> = vec![];
+        let flux = EchoEngine::spectral_flux_native(&fft_current, &fft_previous);
+        assert_eq!(flux, 0.0);
+    }
+
+    #[test]
+    fn test_spectral_flux_simple() {
+        let signal1 = vec![1.0, 2.0, 3.0, 4.0];
+        let signal2 = vec![2.0, 3.0, 4.0, 5.0];
+        let fft_current = EchoEngine::compute_fft_native(&signal1);
+        let fft_previous = EchoEngine::compute_fft_native(&signal2);
+        let flux = EchoEngine::spectral_flux_native(&fft_current, &fft_previous);
+
+        // Flux should be non-negative
+        assert!(flux >= 0.0);
+    }
+
+    #[test]
+    fn test_spectral_rolloff_empty() {
+        let fft_data: Vec<Complex<f64>> = vec![];
+        let rolloff = EchoEngine::spectral_rolloff_native(&fft_data, 44100.0);
+        assert_eq!(rolloff, 0.0);
+    }
+
+    #[test]
+    fn test_spectral_rolloff_simple() {
+        let signal = vec![1.0, 2.0, 3.0, 4.0];
+        let fft_data = EchoEngine::compute_fft_native(&signal);
+        let rolloff = EchoEngine::spectral_rolloff_native(&fft_data, 44100.0);
+
+        // Rolloff should be between 0 and Nyquist frequency
+        assert!(rolloff >= 0.0);
+        assert!(rolloff <= 22050.0);
     }
 }

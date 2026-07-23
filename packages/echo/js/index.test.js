@@ -45,7 +45,10 @@ vi.mock('../pkg/echo.js', () => {
     find_peak_lag: vi.fn((correlation) => JSON.stringify({
       lag: 0,
       value: 1.0
-    }))
+    })),
+    compute_spectral_centroid: vi.fn((signal, sampleRate) => 5000.0),
+    compute_spectral_flux: vi.fn((signalCurrent, signalPrevious) => 0.5),
+    compute_spectral_rolloff: vi.fn((signal, sampleRate) => 15000.0)
   }));
 
   return {
@@ -70,6 +73,9 @@ import {
   isAudioReady,
   crossCorrelationFFT,
   findPeakLag,
+  computeSpectralCentroid,
+  computeSpectralFlux,
+  computeSpectralRolloff,
   getStatus
 } from './index.js';
 
@@ -181,5 +187,30 @@ describe('ECHO JS Integration', () => {
     expect(peak).toHaveProperty('value');
     expect(typeof peak.lag).toBe('number');
     expect(typeof peak.value).toBe('number');
+  });
+
+  it('should compute spectral centroid', () => {
+    const signal = new Float32Array([1.0, 2.0, 3.0, 4.0]);
+    const centroid = computeSpectralCentroid(signal, 44100);
+
+    expect(typeof centroid).toBe('number');
+    expect(centroid).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should compute spectral flux', () => {
+    const signalCurrent = new Float32Array([1.0, 2.0, 3.0, 4.0]);
+    const signalPrevious = new Float32Array([2.0, 3.0, 4.0, 5.0]);
+    const flux = computeSpectralFlux(signalCurrent, signalPrevious);
+
+    expect(typeof flux).toBe('number');
+    expect(flux).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should compute spectral rolloff', () => {
+    const signal = new Float32Array([1.0, 2.0, 3.0, 4.0]);
+    const rolloff = computeSpectralRolloff(signal, 44100);
+
+    expect(typeof rolloff).toBe('number');
+    expect(rolloff).toBeGreaterThanOrEqual(0);
   });
 });

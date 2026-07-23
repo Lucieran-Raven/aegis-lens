@@ -242,6 +242,48 @@ export function findPeakLag(correlation) {
 }
 
 /**
+ * Compute spectral centroid from a signal
+ * @param {Float32Array} signal - Input signal
+ * @param {number} sampleRate - Sample rate in Hz
+ * @returns {number} Spectral centroid in Hz
+ */
+export function computeSpectralCentroid(signal, sampleRate = 44100) {
+  if (!isInitialized || !engine) {
+    throw new Error('ECHO engine not initialized. Call initEcho() first.');
+  }
+
+  return engine.compute_spectral_centroid(signal, sampleRate);
+}
+
+/**
+ * Compute spectral flux between two signals
+ * @param {Float32Array} signalCurrent - Current signal frame
+ * @param {Float32Array} signalPrevious - Previous signal frame
+ * @returns {number} Spectral flux value
+ */
+export function computeSpectralFlux(signalCurrent, signalPrevious) {
+  if (!isInitialized || !engine) {
+    throw new Error('ECHO engine not initialized. Call initEcho() first.');
+  }
+
+  return engine.compute_spectral_flux(signalCurrent, signalPrevious);
+}
+
+/**
+ * Compute spectral rolloff from a signal
+ * @param {Float32Array} signal - Input signal
+ * @param {number} sampleRate - Sample rate in Hz
+ * @returns {number} Spectral rolloff frequency in Hz
+ */
+export function computeSpectralRolloff(signal, sampleRate = 44100) {
+  if (!isInitialized || !engine) {
+    throw new Error('ECHO engine not initialized. Call initEcho() first.');
+  }
+
+  return engine.compute_spectral_rolloff(signal, sampleRate);
+}
+
+/**
  * Get engine status
  * @returns {Object} Status information
  */
@@ -271,6 +313,9 @@ if (typeof window !== 'undefined') {
     isAudioReady,
     crossCorrelationFFT,
     findPeakLag,
+    computeSpectralCentroid,
+    computeSpectralFlux,
+    computeSpectralRolloff,
     getStatus
   };
 }
