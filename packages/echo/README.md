@@ -5,7 +5,10 @@ ECHO is a high-performance acoustic time-of-flight measurement and analysis engi
 ## Features
 
 - **Acoustic time-of-flight measurement**: Microsecond-level timing analysis
-- **Spectral analysis**: Spectral centroid and zero-crossing rate calculation
+- **Spectral analysis**: Spectral centroid, spectral flux, spectral rolloff, and zero-crossing rate calculation
+- **FFT-based cross-correlation**: High-performance signal correlation analysis
+- **Chirp generation**: Linear frequency sweep signal generation for audio testing
+- **Peak lag detection**: Identify time delays in correlated signals
 - **Anomaly detection**: Clear, Suspect, or Anomaly status classification
 - **Cross-platform**: Native Rust with WebAssembly support
 - **Real-time**: Continuous measurement with sliding window (1000 samples)
@@ -48,12 +51,47 @@ for _ in 0..100 {
 let result = engine.analyze_native();
 println!("Score: {}", result.score);
 println!("Status: {}", result.status);
+
+// Generate chirp signal
+let config = echo::ChirpConfig {
+    start_frequency: 1000.0,
+    end_frequency: 8000.0,
+    duration: 0.1,
+    sample_rate: 44100.0,
+};
+let chirp = engine.generate_chirp_native(&config);
+println!("Generated {} chirp samples", chirp.samples.len());
+
+// FFT cross-correlation
+let signal1 = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+let signal2 = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+let correlation = EchoEngine::cross_correlation_fft_native(&signal1, &signal2);
+let (lag, value) = EchoEngine::find_peak_lag_native(&correlation);
+println!("Peak lag: {}, value: {}", lag, value);
+
+// Spectral analysis
+let signal = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+let fft_data = EchoEngine::compute_fft_native(&signal);
+let centroid = EchoEngine::spectral_centroid_native(&fft_data, 44100.0);
+let rolloff = EchoEngine::spectral_rolloff_native(&fft_data, 44100.0);
+println!("Spectral centroid: {} Hz", centroid);
+println!("Spectral rolloff: {} Hz", rolloff);
 ```
 
 ### JavaScript
 
 ```javascript
-import { initEcho, measureToF, analyze } from '@aegis-lens/echo-js';
+import {
+  initEcho,
+  measureToF,
+  analyze,
+  generateChirp,
+  crossCorrelationFFT,
+  findPeakLag,
+  computeSpectralCentroid,
+  computeSpectralFlux,
+  computeSpectralRolloff
+} from '@aegis-lens/echo-js';
 
 // Initialize
 await initEcho();
@@ -67,6 +105,26 @@ for (let i = 0; i < 100; i++) {
 const result = analyze();
 console.log('Score:', result.score);
 console.log('Status:', result.status);
+
+// Generate chirp signal
+const chirp = generateChirp(1000.0, 8000.0, 0.1, 44100.0);
+console.log('Generated chirp with', chirp.samples.length, 'samples');
+
+// FFT cross-correlation
+const signal1 = new Float32Array([1.0, 2.0, 3.0, 4.0, 5.0]);
+const signal2 = new Float32Array([1.0, 2.0, 3.0, 4.0, 5.0]);
+const correlation = crossCorrelationFFT(signal1, signal2);
+const peak = findPeakLag(correlation);
+console.log('Peak lag:', peak.lag, 'value:', peak.value);
+
+// Spectral analysis
+const signal = new Float32Array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+const centroid = computeSpectralCentroid(signal, 44100.0);
+const flux = computeSpectralFlux(signal, signal);
+const rolloff = computeSpectralRolloff(signal, 44100.0);
+console.log('Spectral centroid:', centroid, 'Hz');
+console.log('Spectral flux:', flux);
+console.log('Spectral rolloff:', rolloff, 'Hz');
 ```
 
 ### Browser
@@ -80,10 +138,22 @@ console.log('Status:', result.status);
 
   // Measure
   window.Echo.measure();
-  
+
   // Analyze
   const result = window.Echo.analyze();
   console.log(result);
+
+  // Generate chirp
+  const chirp = window.Echo.generateChirp(1000.0, 8000.0, 0.1, 44100.0);
+
+  // Cross-correlation
+  const correlation = window.Echo.crossCorrelationFFT(signal1, signal2);
+  const peak = window.Echo.findPeakLag(correlation);
+
+  // Spectral analysis
+  const centroid = window.Echo.computeSpectralCentroid(signal, 44100.0);
+  const flux = window.Echo.computeSpectralFlux(signalCurrent, signalPrevious);
+  const rolloff = window.Echo.computeSpectralRolloff(signal, 44100.0);
 </script>
 ```
 
@@ -115,6 +185,45 @@ Returns the current number of samples in the window.
 #### `clear()`
 Clears all samples from the window.
 
+#### `generate_chirp_native(config: &ChirpConfig) -> ChirpSignal`
+Generates a linear chirp signal with specified frequency sweep.
+
+#### `generate_chirp(start_freq, end_freq, duration, sample_rate) -> JsValue`
+WASM-compatible version of `generate_chirp_native()`.
+
+#### `cross_correlation_fft_native(signal1: &[f32], signal2: &[f32]) -> Vec<f32>`
+Computes FFT-based cross-correlation between two signals.
+
+#### `cross_correlation_fft(signal1: &[f32], signal2: &[f32]) -> Vec<f32>`
+WASM-compatible version of `cross_correlation_fft_native()`.
+
+#### `find_peak_lag_native(correlation: &[f32]) -> (usize, f32)`
+Finds the lag with maximum correlation value.
+
+#### `find_peak_lag(correlation: &[f32]) -> JsValue`
+WASM-compatible version of `find_peak_lag_native()`.
+
+#### `compute_fft_native(signal: &[f32]) -> Vec<Complex<f64>>`
+Computes FFT of a signal (native only).
+
+#### `spectral_centroid_native(fft_data: &[Complex<f64>], sample_rate: f64) -> f64`
+Computes spectral centroid from FFT magnitude spectrum.
+
+#### `compute_spectral_centroid(signal: &[f32], sample_rate: f64) -> f64`
+WASM-compatible version that computes FFT internally.
+
+#### `spectral_flux_native(fft_current: &[Complex<f64>], fft_previous: &[Complex<f64>]) -> f64`
+Computes spectral flux between two FFT frames.
+
+#### `compute_spectral_flux(signal_current: &[f32], signal_previous: &[f32]) -> f64`
+WASM-compatible version that computes FFT internally.
+
+#### `spectral_rolloff_native(fft_data: &[Complex<f64>], sample_rate: f64) -> f64`
+Computes spectral rolloff (85% energy threshold frequency).
+
+#### `compute_spectral_rolloff(signal: &[f32], sample_rate: f64) -> f64`
+WASM-compatible version that computes FFT internally.
+
 ### EchoResult
 
 ```rust
@@ -123,9 +232,31 @@ pub struct EchoResult {
     pub status: String,          // "CLEAR", "SUSPECT", "ANOMALY", "INSUFFICIENT_DATA"
     pub mean_tof: f64,           // Mean time-of-flight in milliseconds
     pub std_tof: f64,            // Standard deviation
-    pub spectral_centroid: f64,  // Spectral centroid (0-1)
+    pub spectral_centroid: f64,  // Spectral centroid in Hz
     pub zero_crossing_rate: f64, // Zero crossing rate
+    pub spectral_flux: f64,      // Spectral flux value
+    pub spectral_rolloff: f64,   // Spectral rolloff frequency in Hz
     pub sample_count: usize,     // Number of samples analyzed
+}
+```
+
+### ChirpConfig
+
+```rust
+pub struct ChirpConfig {
+    pub start_frequency: f64,  // Starting frequency in Hz
+    pub end_frequency: f64,    // Ending frequency in Hz
+    pub duration: f64,         // Duration in seconds
+    pub sample_rate: f64,      // Sample rate in Hz
+}
+```
+
+### ChirpSignal
+
+```rust
+pub struct ChirpSignal {
+    pub samples: Vec<f32>,     // Generated chirp samples
+    pub config: ChirpConfig,   // Configuration used
 }
 ```
 
@@ -203,8 +334,10 @@ ECHO uses a sliding window approach with a fixed-size buffer (1000 samples). Eac
 
 1. **Mean TOF**: Average time-of-flight
 2. **Standard Deviation**: Measure of variability
-3. **Spectral Centroid**: Frequency distribution center of mass
-4. **Zero Crossing Rate**: Signal frequency indicator
+3. **Spectral Centroid**: Frequency distribution center of mass (in Hz)
+4. **Spectral Flux**: Measure of spectral change between consecutive frames
+5. **Spectral Rolloff**: Frequency below which 85% of spectral energy is contained
+6. **Zero Crossing Rate**: Signal frequency indicator
 
 ### Scoring Algorithm
 
