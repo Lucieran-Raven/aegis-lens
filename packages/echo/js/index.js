@@ -7,6 +7,8 @@ import init, { EchoEngine } from '../pkg/echo.js';
 
 let engine = null;
 let isInitialized = false;
+let audioContext = null;
+let isAudioInitialized = false;
 
 /**
  * Initialize ECHO engine
@@ -26,6 +28,124 @@ export async function initEcho() {
     console.error('Failed to initialize ECHO engine:', error);
     throw error;
   }
+}
+
+/**
+ * Initialize Web Audio API
+ * @returns {Promise<AudioContext>}
+ */
+export async function initAudio() {
+  if (isAudioInitialized && audioContext) {
+    return audioContext;
+  }
+
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    audioContext = new AudioContextClass();
+    isAudioInitialized = true;
+    console.log('Web Audio API initialized successfully');
+    return audioContext;
+  } catch (error) {
+    console.error('Failed to initialize Web Audio API:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate a chirp signal
+ * @param {Object} config - Chirp configuration
+ * @param {number} config.startFrequency - Start frequency in Hz
+ * @param {number} config.endFrequency - End frequency in Hz
+ * @param {number} config.duration - Duration in seconds
+ * @param {number} config.sampleRate - Sample rate in Hz
+ * @returns {Object} Chirp signal with samples and config
+ */
+export function generateChirp(config = {}) {
+  if (!isInitialized || !engine) {
+    throw new Error('ECHO engine not initialized. Call initEcho() first.');
+  }
+
+  const defaultConfig = {
+    startFrequency: 1000.0,
+    endFrequency: 8000.0,
+    duration: 0.1,
+    sampleRate: 44100.0,
+    ...config
+  };
+
+  const chirp = engine.generate_chirp(
+    defaultConfig.startFrequency,
+    defaultConfig.endFrequency,
+    defaultConfig.duration,
+    defaultConfig.sampleRate
+  );
+
+  return JSON.parse(chirp);
+}
+
+/**
+ * Generate a chirp signal with default configuration
+ * @returns {Object} Chirp signal with samples and config
+ */
+export function generateChirpDefault() {
+  if (!isInitialized || !engine) {
+    throw new Error('ECHO engine not initialized. Call initEcho() first.');
+  }
+
+  const chirp = engine.generate_chirp_default();
+  return JSON.parse(chirp);
+}
+
+/**
+ * Play a chirp signal through Web Audio API
+ * @param {Object} chirp - Chirp signal object from generateChirp
+ * @returns {Promise<AudioBufferSourceNode>} Audio source node
+ */
+export async function playChirp(chirp) {
+  if (!isAudioInitialized || !audioContext) {
+    await initAudio();
+  }
+
+  const { samples, config } = chirp;
+  const audioBuffer = audioContext.createBuffer(1, samples.length, config.sampleRate);
+  const channelData = audioBuffer.getChannelData(0);
+
+  for (let i = 0; i < samples.length; i++) {
+    channelData[i] = samples[i];
+  }
+
+  const source = audioContext.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(audioContext.destination);
+  source.start();
+
+  return source;
+}
+
+/**
+ * Measure time-of-flight using audio chirp
+ * @param {Object} chirp - Chirp signal object
+ * @returns {Promise<number>} Time-of-flight in milliseconds
+ */
+export async function measureAudioToF(chirp) {
+  if (!isAudioInitialized || !audioContext) {
+    await initAudio();
+  }
+
+  const startTime = performance.now();
+
+  // Play chirp
+  await playChirp(chirp);
+
+  const endTime = performance.now();
+  const tof = endTime - startTime;
+
+  // Store in engine
+  if (isInitialized && engine) {
+    engine.measure();
+  }
+
+  return tof;
 }
 
 /**
@@ -85,12 +205,21 @@ export function isReady() {
 }
 
 /**
+ * Check if audio is initialized
+ * @returns {boolean}
+ */
+export function isAudioReady() {
+  return isAudioInitialized;
+}
+
+/**
  * Get engine status
  * @returns {Object} Status information
  */
 export function getStatus() {
   return {
     initialized: isInitialized,
+    audioInitialized: isAudioInitialized,
     sampleCount: isInitialized ? getSampleCount() : 0,
     windowSize: 1000
   };
@@ -100,11 +229,17 @@ export function getStatus() {
 if (typeof window !== 'undefined') {
   window.Echo = {
     init: initEcho,
+    initAudio,
+    generateChirp,
+    generateChirpDefault,
+    playChirp,
+    measureAudioToF,
     measure: measureToF,
-    analyze: analyze,
+    analyze,
     getSampleCount,
     clearSamples,
     isReady,
+    isAudioReady,
     getStatus
   };
 }

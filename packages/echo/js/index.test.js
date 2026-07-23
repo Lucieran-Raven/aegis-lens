@@ -19,9 +19,27 @@ vi.mock('../pkg/echo.js', () => {
       sampleCount: 100
     })),
     sample_count: vi.fn(() => 100),
-    clear: vi.fn()
+    clear: vi.fn(),
+    generate_chirp: vi.fn((startFreq, endFreq, duration, sampleRate) => JSON.stringify({
+      samples: Array(4410).fill(0).map((_, i) => Math.sin(i * 0.1)),
+      config: {
+        startFrequency: startFreq,
+        endFrequency: endFreq,
+        duration: duration,
+        sampleRate: sampleRate
+      }
+    })),
+    generate_chirp_default: vi.fn(() => JSON.stringify({
+      samples: Array(4410).fill(0).map((_, i) => Math.sin(i * 0.1)),
+      config: {
+        startFrequency: 1000.0,
+        endFrequency: 8000.0,
+        duration: 0.1,
+        sampleRate: 44100.0
+      }
+    }))
   }));
-  
+
   return {
     default: mockInit,
     init: mockInit,
@@ -29,7 +47,21 @@ vi.mock('../pkg/echo.js', () => {
   };
 });
 
-import { initEcho, measureToF, analyze, getSampleCount, clearSamples, isReady, getStatus } from './index.js';
+import {
+  initEcho,
+  initAudio,
+  generateChirp,
+  generateChirpDefault,
+  playChirp,
+  measureAudioToF,
+  measureToF,
+  analyze,
+  getSampleCount,
+  clearSamples,
+  isReady,
+  isAudioReady,
+  getStatus
+} from './index.js';
 
 describe('ECHO JS Integration', () => {
   beforeEach(async () => {
@@ -44,7 +76,7 @@ describe('ECHO JS Integration', () => {
   it('should measure TOF samples', () => {
     const sample = measureToF();
     expect(sample).toBeGreaterThanOrEqual(0);
-    expect(sample).toBeLessThan(10); // Should be reasonable
+    expect(sample).toBeLessThan(10);
   });
 
   it('should collect samples correctly', () => {
@@ -52,18 +84,18 @@ describe('ECHO JS Integration', () => {
     measureToF();
     measureToF();
     measureToF();
-    
-    expect(getSampleCount()).toBe(100); // Mock returns 100
+
+    expect(getSampleCount()).toBe(100);
   });
 
   it('should clear samples', () => {
     measureToF();
     measureToF();
     measureToF();
-    
+
     clearSamples();
-    
-    expect(getSampleCount()).toBe(100); // Mock returns 100
+
+    expect(getSampleCount()).toBe(100);
   });
 
   it('should perform analysis', () => {
@@ -78,9 +110,47 @@ describe('ECHO JS Integration', () => {
   it('should return engine status', () => {
     const status = getStatus();
     expect(status).toHaveProperty('initialized');
+    expect(status).toHaveProperty('audioInitialized');
     expect(status).toHaveProperty('sampleCount');
     expect(status).toHaveProperty('windowSize');
     expect(status.initialized).toBe(true);
     expect(status.windowSize).toBe(1000);
+  });
+
+  it('should generate chirp with custom config', () => {
+    const chirp = generateChirp({
+      startFrequency: 500.0,
+      endFrequency: 2000.0,
+      duration: 0.05,
+      sampleRate: 22050.0
+    });
+    expect(chirp).toHaveProperty('samples');
+    expect(chirp).toHaveProperty('config');
+    expect(chirp.config.startFrequency).toBe(500.0);
+    expect(chirp.config.endFrequency).toBe(2000.0);
+    expect(chirp.config.duration).toBe(0.05);
+    expect(chirp.config.sampleRate).toBe(22050.0);
+  });
+
+  it('should generate chirp with default config', () => {
+    const chirp = generateChirpDefault();
+    expect(chirp).toHaveProperty('samples');
+    expect(chirp).toHaveProperty('config');
+    expect(chirp.config.startFrequency).toBe(1000.0);
+    expect(chirp.config.endFrequency).toBe(8000.0);
+    expect(chirp.config.duration).toBe(0.1);
+    expect(chirp.config.sampleRate).toBe(44100.0);
+  });
+
+  it('should generate chirp with default parameters when no config provided', () => {
+    const chirp = generateChirp();
+    expect(chirp).toHaveProperty('samples');
+    expect(chirp).toHaveProperty('config');
+    expect(chirp.config.startFrequency).toBe(1000.0);
+    expect(chirp.config.endFrequency).toBe(8000.0);
+  });
+
+  it('should check audio readiness', () => {
+    expect(isAudioReady()).toBe(false);
   });
 });
