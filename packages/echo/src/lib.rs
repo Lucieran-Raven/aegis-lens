@@ -9,7 +9,7 @@ use std::collections::VecDeque;
 use wasm_bindgen::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
-use rustfft::{FftPlanner, num_complex::Complex};
+use rustfft::{num_complex::Complex, FftPlanner};
 
 const WINDOW_SIZE: usize = 1000;
 const BASELINE_VARIANCE: f64 = 0.1;
