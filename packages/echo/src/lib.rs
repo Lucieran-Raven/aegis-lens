@@ -247,7 +247,10 @@ impl EchoEngine {
 
     /// Compute spectral flux (change in magnitude between frames) (native)
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn spectral_flux_native(fft_current: &[Complex<f64>], fft_previous: &[Complex<f64>]) -> f64 {
+    pub fn spectral_flux_native(
+        fft_current: &[Complex<f64>],
+        fft_previous: &[Complex<f64>],
+    ) -> f64 {
         if fft_current.is_empty() || fft_previous.is_empty() {
             return 0.0;
         }
@@ -256,8 +259,12 @@ impl EchoEngine {
         let mut flux = 0.0;
 
         for i in 0..n {
-            let mag_current = (fft_current[i].re * fft_current[i].re + fft_current[i].im * fft_current[i].im).sqrt();
-            let mag_previous = (fft_previous[i].re * fft_previous[i].re + fft_previous[i].im * fft_previous[i].im).sqrt();
+            let mag_current = (fft_current[i].re * fft_current[i].re
+                + fft_current[i].im * fft_current[i].im)
+                .sqrt();
+            let mag_previous = (fft_previous[i].re * fft_previous[i].re
+                + fft_previous[i].im * fft_previous[i].im)
+                .sqrt();
             let diff = mag_current - mag_previous;
             if diff > 0.0 {
                 flux += diff;
@@ -316,7 +323,10 @@ impl EchoEngine {
 
     /// Compute spectral flux (WASM fallback)
     #[cfg(target_arch = "wasm32")]
-    pub fn spectral_flux_native(_fft_current: &[Complex<f64>], _fft_previous: &[Complex<f64>]) -> f64 {
+    pub fn spectral_flux_native(
+        _fft_current: &[Complex<f64>],
+        _fft_previous: &[Complex<f64>],
+    ) -> f64 {
         // Fallback: return 0.0 for WASM
         0.0
     }
@@ -567,7 +577,11 @@ impl EchoEngine {
                 return 0.0;
             }
             let sum: f64 = signal.iter().map(|&x| x as f64).sum();
-            let weighted_sum: f64 = signal.iter().enumerate().map(|(i, &x)| i as f64 * x as f64).sum();
+            let weighted_sum: f64 = signal
+                .iter()
+                .enumerate()
+                .map(|(i, &x)| i as f64 * x as f64)
+                .sum();
             if sum < 1e-10 {
                 return 0.0;
             }
