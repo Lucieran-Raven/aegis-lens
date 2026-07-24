@@ -4,8 +4,8 @@
 //! and image processing operations.
 
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 use std::collections::VecDeque;
+use wasm_bindgen::prelude::*;
 
 /// Image metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -192,11 +192,16 @@ impl IrisEngine {
 
     /// Detect faces from image data (simplified for WASM)
     /// In production, this would integrate with MediaPipe or similar
-    pub fn detect_faces(&mut self, _image_data: &[u8], _width: u32, _height: u32) -> Vec<FaceDetection> {
+    pub fn detect_faces(
+        &mut self,
+        _image_data: &[u8],
+        _width: u32,
+        _height: u32,
+    ) -> Vec<FaceDetection> {
         // Simplified face detection using skin tone regions
         // This is a placeholder - production would use MediaPipe Face Detection
         self.detections.clear();
-        
+
         // For now, return empty detection
         // Real implementation would use MediaPipe Face Detection API
         Vec::new()
@@ -220,9 +225,9 @@ impl IrisEngine {
         // Calculate vector between eyes
         let dx = right_eye.x - left_eye.x;
         let dy = right_eye.y - left_eye.y;
-        
+
         self.eye_vectors.push((dx, dy));
-        
+
         // Keep only last 100 vectors
         if self.eye_vectors.len() > 100 {
             self.eye_vectors.remove(0);
@@ -234,18 +239,26 @@ impl IrisEngine {
         if self.eye_vectors.len() < 2 {
             return 0.0;
         }
-        
-        let mean_x: f32 = self.eye_vectors.iter().map(|v| v.0).sum::<f32>() / self.eye_vectors.len() as f32;
-        let mean_y: f32 = self.eye_vectors.iter().map(|v| v.1).sum::<f32>() / self.eye_vectors.len() as f32;
-        
-        let variance_x: f32 = self.eye_vectors.iter()
+
+        let mean_x: f32 =
+            self.eye_vectors.iter().map(|v| v.0).sum::<f32>() / self.eye_vectors.len() as f32;
+        let mean_y: f32 =
+            self.eye_vectors.iter().map(|v| v.1).sum::<f32>() / self.eye_vectors.len() as f32;
+
+        let variance_x: f32 = self
+            .eye_vectors
+            .iter()
             .map(|v| (v.0 - mean_x).powi(2))
-            .sum::<f32>() / self.eye_vectors.len() as f32;
-        
-        let variance_y: f32 = self.eye_vectors.iter()
+            .sum::<f32>()
+            / self.eye_vectors.len() as f32;
+
+        let variance_y: f32 = self
+            .eye_vectors
+            .iter()
             .map(|v| (v.1 - mean_y).powi(2))
-            .sum::<f32>() / self.eye_vectors.len() as f32;
-        
+            .sum::<f32>()
+            / self.eye_vectors.len() as f32;
+
         (variance_x + variance_y).sqrt()
     }
 
@@ -253,48 +266,54 @@ impl IrisEngine {
     pub fn analyze(&self) -> IrisResult {
         const THRESHOLD_CLEAR: f64 = 0.8;
         const THRESHOLD_SUSPECT: f64 = 0.5;
-        
+
         let face_detected = !self.detections.is_empty();
         let eye_variance = self.calculate_eye_variance();
         let vector_count = self.eye_vectors.len();
-        
+
         // Calculate enhanced metrics if trajectory data exists
         let (smoothness, consistency, entropy) = if self.trajectory_left.len() >= 2 {
             self.calculate_metrics()
         } else {
             (0.0, 0.0, eye_variance)
         };
-        
+
         // Calculate score based on eye movement variance
         // Real humans have natural eye movement variance
         // Pre-recorded videos or photos have minimal variance
         let mut score: f64 = 1.0;
-        
+
         if !face_detected {
             score -= 0.5;
         }
-        
+
         if vector_count < 10 {
             score -= 0.3;
         }
-        
+
         // Low variance suggests static image or pre-recorded video
         if eye_variance < 0.5 {
             score -= 0.4;
         }
-        
+
         // Very high variance might indicate manipulation
         if eye_variance > 50.0 {
             score -= 0.2;
         }
-        
+
         // Apply enhanced metrics penalties
-        if smoothness < 0.3 { score -= 0.5; }
-        if consistency < 0.4 { score -= 0.3; }
-        if entropy < 0.2 { score -= 0.4; }
-        
+        if smoothness < 0.3 {
+            score -= 0.5;
+        }
+        if consistency < 0.4 {
+            score -= 0.3;
+        }
+        if entropy < 0.2 {
+            score -= 0.4;
+        }
+
         score = score.max(0.0).min(1.0);
-        
+
         let status = if score >= THRESHOLD_CLEAR {
             "CLEAR".to_string()
         } else if score >= THRESHOLD_SUSPECT {
@@ -302,16 +321,25 @@ impl IrisEngine {
         } else {
             "ANOMALY".to_string()
         };
-        
+
         // Get latest vectors if available
-        let (left_vector, right_vector) = if let (Some(left), Some(right)) = 
-            (self.trajectory_left.back(), self.trajectory_right.back()) {
-            (Point2D { x: left.vector_x, y: left.vector_y },
-             Point2D { x: right.vector_x, y: right.vector_y })
+        let (left_vector, right_vector) = if let (Some(left), Some(right)) =
+            (self.trajectory_left.back(), self.trajectory_right.back())
+        {
+            (
+                Point2D {
+                    x: left.vector_x,
+                    y: left.vector_y,
+                },
+                Point2D {
+                    x: right.vector_x,
+                    y: right.vector_y,
+                },
+            )
         } else {
             (Point2D { x: 0.0, y: 0.0 }, Point2D { x: 0.0, y: 0.0 })
         };
-        
+
         IrisResult {
             score,
             status,
@@ -333,7 +361,7 @@ impl IrisEngine {
         // In production, this would use facial landmark detection
         let eye_x = face.x + face.width * 0.3;
         let eye_y = face.y + face.height * 0.4;
-        
+
         EyeLandmark {
             x: eye_x,
             y: eye_y,
@@ -345,7 +373,7 @@ impl IrisEngine {
     pub fn extract_eye_regions(&self, face: &FaceDetection) -> EyeLandmark {
         let left_x = face.x + face.width * 0.3;
         let left_y = face.y + face.height * 0.4;
-        
+
         EyeLandmark {
             x: left_x,
             y: left_y,
@@ -364,7 +392,7 @@ impl IrisEngine {
     pub fn process_frame(&mut self, image_data: &[u8], width: u32, height: u32) -> FrameResult {
         // Detect faces in the frame
         let detections = self.detect_faces(image_data, width, height);
-        
+
         if detections.is_empty() {
             return FrameResult {
                 status: "NO_FACE".to_string(),
@@ -373,7 +401,7 @@ impl IrisEngine {
                 face_detected: false,
             };
         }
-        
+
         // Use the first detected face
         let face = &detections[0];
         let left_eye = self.extract_eye_region(face);
@@ -382,10 +410,10 @@ impl IrisEngine {
             y: face.y + face.height * 0.4,
             eye_type: EyeType::Right,
         };
-        
+
         // Track eye movement
         self.track_eye_vector(&left_eye, &right_eye);
-        
+
         FrameResult {
             status: "FACE_DETECTED".to_string(),
             left_eye: Some(left_eye),
@@ -396,8 +424,8 @@ impl IrisEngine {
 
     /// Process MediaPipe landmarks and return analysis result
     pub fn process_landmarks(&mut self, landmarks: JsValue) -> JsValue {
-        let face_data: MediaPipeFaceLandmarks = serde_wasm_bindgen::from_value(landmarks).unwrap_or_else(|_| {
-            MediaPipeFaceLandmarks {
+        let face_data: MediaPipeFaceLandmarks = serde_wasm_bindgen::from_value(landmarks)
+            .unwrap_or_else(|_| MediaPipeFaceLandmarks {
                 left_eye: EyeLandmarks {
                     pupil: Point2D { x: 0.0, y: 0.0 },
                     glints: vec![],
@@ -416,9 +444,8 @@ impl IrisEngine {
                     width: 1.0,
                     height: 1.0,
                 },
-            }
-        });
-        
+            });
+
         // Extract left eye data
         let left_pupil = &face_data.left_eye.pupil;
         let left_glints = &face_data.left_eye.glints;
@@ -427,11 +454,11 @@ impl IrisEngine {
         } else {
             left_glints[0].clone()
         };
-        
+
         // Calculate left eye vector
         let left_vector_x = left_glint.x - left_pupil.x;
         let left_vector_y = left_glint.y - left_pupil.y;
-        
+
         // Extract right eye data
         let right_pupil = &face_data.right_eye.pupil;
         let right_glints = &face_data.right_eye.glints;
@@ -440,10 +467,10 @@ impl IrisEngine {
         } else {
             right_glints[0].clone()
         };
-        
+
         let right_vector_x = right_glint.x - right_pupil.x;
         let right_vector_y = right_glint.y - right_pupil.y;
-        
+
         // Store in trajectory
         self.trajectory_left.push_back(EyeData {
             pupil_x: left_pupil.x,
@@ -453,7 +480,7 @@ impl IrisEngine {
             vector_x: left_vector_x,
             vector_y: left_vector_y,
         });
-        
+
         self.trajectory_right.push_back(EyeData {
             pupil_x: right_pupil.x,
             pupil_y: right_pupil.y,
@@ -462,7 +489,7 @@ impl IrisEngine {
             vector_x: right_vector_x,
             vector_y: right_vector_y,
         });
-        
+
         // Maintain window size
         if self.trajectory_left.len() > self.window_size {
             self.trajectory_left.pop_front();
@@ -470,19 +497,25 @@ impl IrisEngine {
         if self.trajectory_right.len() > self.window_size {
             self.trajectory_right.pop_front();
         }
-        
+
         // Calculate metrics
         let (smoothness, consistency, entropy) = self.calculate_metrics();
-        
+
         // Detect attack type
         let attack_type = self.detect_attack_type(smoothness, consistency, entropy);
-        
+
         // Calculate score
         let mut score: f64 = 1.0;
-        if smoothness < 0.3 { score -= 0.5; }
-        if consistency < 0.4 { score -= 0.3; }
-        if entropy < 0.2 { score -= 0.4; }
-        
+        if smoothness < 0.3 {
+            score -= 0.5;
+        }
+        if consistency < 0.4 {
+            score -= 0.3;
+        }
+        if entropy < 0.2 {
+            score -= 0.4;
+        }
+
         // Apply attack-specific penalties
         match attack_type {
             AttackType::StaticPhoto => score -= 0.3,
@@ -492,13 +525,17 @@ impl IrisEngine {
             AttackType::ProxyCandidate => score -= 0.2,
             AttackType::None => {}
         }
-        
+
         score = score.max(0.0).min(1.0);
-        
-        let status = if score >= 0.8 { "CLEAR".to_string() }
-                     else if score >= 0.5 { "SUSPECT".to_string() }
-                     else { "ANOMALY".to_string() };
-        
+
+        let status = if score >= 0.8 {
+            "CLEAR".to_string()
+        } else if score >= 0.5 {
+            "SUSPECT".to_string()
+        } else {
+            "ANOMALY".to_string()
+        };
+
         // Return result
         let result = IrisResult {
             score,
@@ -509,11 +546,17 @@ impl IrisEngine {
             smoothness,
             consistency,
             trajectory_entropy: entropy,
-            left_vector: Point2D { x: left_vector_x, y: left_vector_y },
-            right_vector: Point2D { x: right_vector_x, y: right_vector_y },
+            left_vector: Point2D {
+                x: left_vector_x,
+                y: left_vector_y,
+            },
+            right_vector: Point2D {
+                x: right_vector_x,
+                y: right_vector_y,
+            },
             sample_count: self.trajectory_left.len(),
         };
-        
+
         serde_wasm_bindgen::to_value(&result).unwrap()
     }
 
@@ -522,21 +565,25 @@ impl IrisEngine {
         if self.trajectory_left.len() < 2 {
             return (0.0, 0.0, 0.0);
         }
-        
+
         // Calculate smoothness (inverse of acceleration)
         let mut smoothness = 0.0;
         let mut prev_left = &self.trajectory_left[0];
         for data in self.trajectory_left.iter().skip(1) {
-            let accel = ((data.vector_x - prev_left.vector_x).abs() + 
-                        (data.vector_y - prev_left.vector_y).abs()) as f32;
+            let accel = ((data.vector_x - prev_left.vector_x).abs()
+                + (data.vector_y - prev_left.vector_y).abs()) as f32;
             smoothness += (1.0 - accel.min(1.0));
             prev_left = data;
         }
         smoothness /= self.trajectory_left.len() as f32;
-        
+
         // Calculate consistency (correlation between left and right eyes)
         let mut consistency = 0.0;
-        for (left, right) in self.trajectory_left.iter().zip(self.trajectory_right.iter()) {
+        for (left, right) in self
+            .trajectory_left
+            .iter()
+            .zip(self.trajectory_right.iter())
+        {
             let left_mag = (left.vector_x.powi(2) + left.vector_y.powi(2)).sqrt();
             let right_mag = (right.vector_x.powi(2) + right.vector_y.powi(2)).sqrt();
             if left_mag > 0.0 && right_mag > 0.0 {
@@ -547,12 +594,13 @@ impl IrisEngine {
         }
         consistency /= self.trajectory_left.len() as f32;
         consistency = consistency.max(0.0);
-        
+
         // Calculate entropy (variability in trajectory)
         let mut entropy = 0.0;
         let mut histogram = [0.0; 10];
         for data in self.trajectory_left.iter() {
-            let angle = (data.vector_y.atan2(data.vector_x) + std::f32::consts::PI) / (2.0 * std::f32::consts::PI);
+            let angle = (data.vector_y.atan2(data.vector_x) + std::f32::consts::PI)
+                / (2.0 * std::f32::consts::PI);
             let bin = (angle * 10.0).min(9.0) as usize;
             histogram[bin] += 1.0;
         }
@@ -564,7 +612,7 @@ impl IrisEngine {
             }
         }
         entropy /= 3.32; // Normalize to 0-1 range
-        
+
         (smoothness, consistency, entropy)
     }
 
@@ -574,31 +622,33 @@ impl IrisEngine {
         if entropy < 0.1 && consistency > 0.9 {
             return AttackType::StaticPhoto;
         }
-        
+
         // Check for AI avatar (too smooth)
         if smoothness > 0.9 && entropy < 0.3 {
             return AttackType::AIAvatar;
         }
-        
+
         // Check for deepfake (erratic glints)
         if consistency < 0.2 && smoothness < 0.3 {
             return AttackType::Deepfake;
         }
-        
+
         // Check for virtual webcam (low jitter)
         if entropy < 0.2 && smoothness > 0.8 {
             return AttackType::VirtualWebcam;
         }
-        
+
         // Check for proxy candidate (mismatched vectors)
-        if let (Some(left), Some(right)) = (self.trajectory_left.back(), self.trajectory_right.back()) {
-            let vec_diff = (left.vector_x - right.vector_x).abs() + 
-                          (left.vector_y - right.vector_y).abs();
+        if let (Some(left), Some(right)) =
+            (self.trajectory_left.back(), self.trajectory_right.back())
+        {
+            let vec_diff =
+                (left.vector_x - right.vector_x).abs() + (left.vector_y - right.vector_y).abs();
             if vec_diff > 0.5 {
                 return AttackType::ProxyCandidate;
             }
         }
-        
+
         AttackType::None
     }
 }
@@ -764,12 +814,12 @@ mod tests {
             y: 200.0,
             eye_type: EyeType::Right,
         };
-        
+
         // Add 105 vectors (exceeds capacity of 100)
         for _ in 0..105 {
             engine.track_eye_vector(&left_eye, &right_eye);
         }
-        
+
         let result = engine.analyze();
         // Should only keep last 100
         assert_eq!(result.vector_count, 100);
