@@ -147,9 +147,13 @@ pub struct MediaPipeFaceLandmarks {
 /// Eye data for trajectory tracking
 #[derive(Debug, Clone)]
 struct EyeData {
+    #[allow(dead_code)]
     pupil_x: f32,
+    #[allow(dead_code)]
     pupil_y: f32,
+    #[allow(dead_code)]
     glint_x: f32,
+    #[allow(dead_code)]
     glint_y: f32,
     vector_x: f32,
     vector_y: f32,
@@ -174,6 +178,12 @@ pub struct IrisEngine {
     trajectory_left: VecDeque<EyeData>,
     trajectory_right: VecDeque<EyeData>,
     window_size: usize,
+}
+
+impl Default for IrisEngine {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[wasm_bindgen]
@@ -312,7 +322,7 @@ impl IrisEngine {
             score -= 0.4;
         }
 
-        score = score.max(0.0).min(1.0);
+        score = score.clamp(0.0, 1.0);
 
         let status = if score >= THRESHOLD_CLEAR {
             "CLEAR".to_string()
@@ -526,7 +536,7 @@ impl IrisEngine {
             AttackType::None => {}
         }
 
-        score = score.max(0.0).min(1.0);
+        score = score.clamp(0.0, 1.0);
 
         let status = if score >= 0.8 {
             "CLEAR".to_string()
@@ -570,9 +580,9 @@ impl IrisEngine {
         let mut smoothness = 0.0;
         let mut prev_left = &self.trajectory_left[0];
         for data in self.trajectory_left.iter().skip(1) {
-            let accel = ((data.vector_x - prev_left.vector_x).abs()
-                + (data.vector_y - prev_left.vector_y).abs()) as f32;
-            smoothness += (1.0 - accel.min(1.0));
+            let accel = (data.vector_x - prev_left.vector_x).abs()
+                + (data.vector_y - prev_left.vector_y).abs();
+            smoothness += 1.0 - accel.min(1.0);
             prev_left = data;
         }
         smoothness /= self.trajectory_left.len() as f32;
@@ -588,7 +598,7 @@ impl IrisEngine {
             let right_mag = (right.vector_x.powi(2) + right.vector_y.powi(2)).sqrt();
             if left_mag > 0.0 && right_mag > 0.0 {
                 let dot = left.vector_x * right.vector_x + left.vector_y * right.vector_y;
-                let cos_sim = (dot / (left_mag * right_mag)).max(-1.0).min(1.0);
+                let cos_sim = (dot / (left_mag * right_mag)).clamp(-1.0, 1.0);
                 consistency += cos_sim;
             }
         }
