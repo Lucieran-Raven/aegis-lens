@@ -1,0 +1,24 @@
+{
+  "name": "iris",
+  "version": "0.1.0",
+  "description": "IRIS - Corneal Reflection Parallax for liveness detection",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@mediapipe/face_mesh": "^0.4.0",
+    "@mediapipe/camera_utils": "^0.3.0",
+    "@mediapipe/drawing_utils": "^0.3.0"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "liveness",
+    "detection",
+    "face",
+    "mediapipe",
+    "wasm"
+  ],
+  "author": "",
+  "license": "MIT"
+}

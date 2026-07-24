@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use std::collections::VecDeque;
 
 /// Image metadata
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -72,9 +73,9 @@ pub enum EyeType {
     Right,
 }
 
-/// Face landmarks
+/// Face landmarks (simple version for basic detection)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FaceLandmarks {
+pub struct SimpleFaceLandmarks {
     pub left_eye: EyeLandmark,
     pub right_eye: EyeLandmark,
     pub nose: (f32, f32),
@@ -90,6 +91,79 @@ pub struct IrisResult {
     pub eye_variance: f32,
     pub vector_count: usize,
     pub face_detected: bool,
+    pub smoothness: f32,
+    pub consistency: f32,
+    pub trajectory_entropy: f32,
+    pub left_vector: Point2D,
+    pub right_vector: Point2D,
+    pub sample_count: usize,
+}
+
+/// Frame processing result
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[wasm_bindgen(getter_with_clone)]
+pub struct FrameResult {
+    pub status: String,
+    pub left_eye: Option<EyeLandmark>,
+    pub right_eye: Option<EyeLandmark>,
+    pub face_detected: bool,
+}
+
+/// 2D Point
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[wasm_bindgen]
+pub struct Point2D {
+    pub x: f32,
+    pub y: f32,
+}
+
+/// Bounding box
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BoundingBox {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+/// Eye landmarks with pupil and glints
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EyeLandmarks {
+    pub pupil: Point2D,
+    pub glints: Vec<Point2D>,
+    pub corners: Vec<Point2D>,
+}
+
+/// Face landmarks from MediaPipe
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MediaPipeFaceLandmarks {
+    pub left_eye: EyeLandmarks,
+    pub right_eye: EyeLandmarks,
+    pub nose_tip: Point2D,
+    pub mouth_center: Point2D,
+    pub face_bbox: BoundingBox,
+}
+
+/// Eye data for trajectory tracking
+#[derive(Debug, Clone)]
+struct EyeData {
+    pupil_x: f32,
+    pupil_y: f32,
+    glint_x: f32,
+    glint_y: f32,
+    vector_x: f32,
+    vector_y: f32,
+}
+
+/// Attack type enum
+#[derive(Debug, Clone, PartialEq)]
+enum AttackType {
+    None,
+    StaticPhoto,
+    AIAvatar,
+    Deepfake,
+    VirtualWebcam,
+    ProxyCandidate,
 }
 
 /// IRIS engine for face detection and analysis
@@ -97,6 +171,9 @@ pub struct IrisResult {
 pub struct IrisEngine {
     detections: Vec<FaceDetection>,
     eye_vectors: Vec<(f32, f32)>,
+    trajectory_left: VecDeque<EyeData>,
+    trajectory_right: VecDeque<EyeData>,
+    window_size: usize,
 }
 
 #[wasm_bindgen]
@@ -107,6 +184,9 @@ impl IrisEngine {
         Self {
             detections: Vec::new(),
             eye_vectors: Vec::new(),
+            trajectory_left: VecDeque::with_capacity(100),
+            trajectory_right: VecDeque::with_capacity(100),
+            window_size: 100,
         }
     }
 
@@ -131,6 +211,8 @@ impl IrisEngine {
     pub fn clear(&mut self) {
         self.detections.clear();
         self.eye_vectors.clear();
+        self.trajectory_left.clear();
+        self.trajectory_right.clear();
     }
 
     /// Track eye vector movement
@@ -176,6 +258,13 @@ impl IrisEngine {
         let eye_variance = self.calculate_eye_variance();
         let vector_count = self.eye_vectors.len();
         
+        // Calculate enhanced metrics if trajectory data exists
+        let (smoothness, consistency, entropy) = if self.trajectory_left.len() >= 2 {
+            self.calculate_metrics()
+        } else {
+            (0.0, 0.0, eye_variance)
+        };
+        
         // Calculate score based on eye movement variance
         // Real humans have natural eye movement variance
         // Pre-recorded videos or photos have minimal variance
@@ -199,6 +288,11 @@ impl IrisEngine {
             score -= 0.2;
         }
         
+        // Apply enhanced metrics penalties
+        if smoothness < 0.3 { score -= 0.5; }
+        if consistency < 0.4 { score -= 0.3; }
+        if entropy < 0.2 { score -= 0.4; }
+        
         score = score.max(0.0).min(1.0);
         
         let status = if score >= THRESHOLD_CLEAR {
@@ -209,12 +303,27 @@ impl IrisEngine {
             "ANOMALY".to_string()
         };
         
+        // Get latest vectors if available
+        let (left_vector, right_vector) = if let (Some(left), Some(right)) = 
+            (self.trajectory_left.back(), self.trajectory_right.back()) {
+            (Point2D { x: left.vector_x, y: left.vector_y },
+             Point2D { x: right.vector_x, y: right.vector_y })
+        } else {
+            (Point2D { x: 0.0, y: 0.0 }, Point2D { x: 0.0, y: 0.0 })
+        };
+        
         IrisResult {
             score,
             status,
             eye_variance,
             vector_count,
             face_detected,
+            smoothness,
+            consistency,
+            trajectory_entropy: entropy,
+            left_vector,
+            right_vector,
+            sample_count: self.trajectory_left.len(),
         }
     }
 
@@ -242,6 +351,255 @@ impl IrisEngine {
             y: left_y,
             eye_type: EyeType::Left,
         }
+    }
+
+    /// Get sample count
+    pub fn sample_count(&self) -> usize {
+        self.trajectory_left.len()
+    }
+
+    /// Process a video frame and return analysis result
+    /// This is a simplified implementation for testing
+    /// In production, this would use MediaPipe for face detection and tracking
+    pub fn process_frame(&mut self, image_data: &[u8], width: u32, height: u32) -> FrameResult {
+        // Detect faces in the frame
+        let detections = self.detect_faces(image_data, width, height);
+        
+        if detections.is_empty() {
+            return FrameResult {
+                status: "NO_FACE".to_string(),
+                left_eye: None,
+                right_eye: None,
+                face_detected: false,
+            };
+        }
+        
+        // Use the first detected face
+        let face = &detections[0];
+        let left_eye = self.extract_eye_region(face);
+        let right_eye = EyeLandmark {
+            x: face.x + face.width * 0.7,
+            y: face.y + face.height * 0.4,
+            eye_type: EyeType::Right,
+        };
+        
+        // Track eye movement
+        self.track_eye_vector(&left_eye, &right_eye);
+        
+        FrameResult {
+            status: "FACE_DETECTED".to_string(),
+            left_eye: Some(left_eye),
+            right_eye: Some(right_eye),
+            face_detected: true,
+        }
+    }
+
+    /// Process MediaPipe landmarks and return analysis result
+    pub fn process_landmarks(&mut self, landmarks: JsValue) -> JsValue {
+        let face_data: MediaPipeFaceLandmarks = serde_wasm_bindgen::from_value(landmarks).unwrap_or_else(|_| {
+            MediaPipeFaceLandmarks {
+                left_eye: EyeLandmarks {
+                    pupil: Point2D { x: 0.0, y: 0.0 },
+                    glints: vec![],
+                    corners: vec![],
+                },
+                right_eye: EyeLandmarks {
+                    pupil: Point2D { x: 0.0, y: 0.0 },
+                    glints: vec![],
+                    corners: vec![],
+                },
+                nose_tip: Point2D { x: 0.0, y: 0.0 },
+                mouth_center: Point2D { x: 0.0, y: 0.0 },
+                face_bbox: BoundingBox {
+                    x: 0.0,
+                    y: 0.0,
+                    width: 1.0,
+                    height: 1.0,
+                },
+            }
+        });
+        
+        // Extract left eye data
+        let left_pupil = &face_data.left_eye.pupil;
+        let left_glints = &face_data.left_eye.glints;
+        let left_glint = if left_glints.is_empty() {
+            Point2D { x: 0.0, y: 0.0 }
+        } else {
+            left_glints[0].clone()
+        };
+        
+        // Calculate left eye vector
+        let left_vector_x = left_glint.x - left_pupil.x;
+        let left_vector_y = left_glint.y - left_pupil.y;
+        
+        // Extract right eye data
+        let right_pupil = &face_data.right_eye.pupil;
+        let right_glints = &face_data.right_eye.glints;
+        let right_glint = if right_glints.is_empty() {
+            Point2D { x: 0.0, y: 0.0 }
+        } else {
+            right_glints[0].clone()
+        };
+        
+        let right_vector_x = right_glint.x - right_pupil.x;
+        let right_vector_y = right_glint.y - right_pupil.y;
+        
+        // Store in trajectory
+        self.trajectory_left.push_back(EyeData {
+            pupil_x: left_pupil.x,
+            pupil_y: left_pupil.y,
+            glint_x: left_glint.x,
+            glint_y: left_glint.y,
+            vector_x: left_vector_x,
+            vector_y: left_vector_y,
+        });
+        
+        self.trajectory_right.push_back(EyeData {
+            pupil_x: right_pupil.x,
+            pupil_y: right_pupil.y,
+            glint_x: right_glint.x,
+            glint_y: right_glint.y,
+            vector_x: right_vector_x,
+            vector_y: right_vector_y,
+        });
+        
+        // Maintain window size
+        if self.trajectory_left.len() > self.window_size {
+            self.trajectory_left.pop_front();
+        }
+        if self.trajectory_right.len() > self.window_size {
+            self.trajectory_right.pop_front();
+        }
+        
+        // Calculate metrics
+        let (smoothness, consistency, entropy) = self.calculate_metrics();
+        
+        // Detect attack type
+        let attack_type = self.detect_attack_type(smoothness, consistency, entropy);
+        
+        // Calculate score
+        let mut score: f64 = 1.0;
+        if smoothness < 0.3 { score -= 0.5; }
+        if consistency < 0.4 { score -= 0.3; }
+        if entropy < 0.2 { score -= 0.4; }
+        
+        // Apply attack-specific penalties
+        match attack_type {
+            AttackType::StaticPhoto => score -= 0.3,
+            AttackType::AIAvatar => score -= 0.3,
+            AttackType::Deepfake => score -= 0.4,
+            AttackType::VirtualWebcam => score -= 0.3,
+            AttackType::ProxyCandidate => score -= 0.2,
+            AttackType::None => {}
+        }
+        
+        score = score.max(0.0).min(1.0);
+        
+        let status = if score >= 0.8 { "CLEAR".to_string() }
+                     else if score >= 0.5 { "SUSPECT".to_string() }
+                     else { "ANOMALY".to_string() };
+        
+        // Return result
+        let result = IrisResult {
+            score,
+            status,
+            eye_variance: entropy,
+            vector_count: self.trajectory_left.len(),
+            face_detected: true,
+            smoothness,
+            consistency,
+            trajectory_entropy: entropy,
+            left_vector: Point2D { x: left_vector_x, y: left_vector_y },
+            right_vector: Point2D { x: right_vector_x, y: right_vector_y },
+            sample_count: self.trajectory_left.len(),
+        };
+        
+        serde_wasm_bindgen::to_value(&result).unwrap()
+    }
+
+    /// Calculate trajectory metrics
+    fn calculate_metrics(&self) -> (f32, f32, f32) {
+        if self.trajectory_left.len() < 2 {
+            return (0.0, 0.0, 0.0);
+        }
+        
+        // Calculate smoothness (inverse of acceleration)
+        let mut smoothness = 0.0;
+        let mut prev_left = &self.trajectory_left[0];
+        for data in self.trajectory_left.iter().skip(1) {
+            let accel = ((data.vector_x - prev_left.vector_x).abs() + 
+                        (data.vector_y - prev_left.vector_y).abs()) as f32;
+            smoothness += (1.0 - accel.min(1.0));
+            prev_left = data;
+        }
+        smoothness /= self.trajectory_left.len() as f32;
+        
+        // Calculate consistency (correlation between left and right eyes)
+        let mut consistency = 0.0;
+        for (left, right) in self.trajectory_left.iter().zip(self.trajectory_right.iter()) {
+            let left_mag = (left.vector_x.powi(2) + left.vector_y.powi(2)).sqrt();
+            let right_mag = (right.vector_x.powi(2) + right.vector_y.powi(2)).sqrt();
+            if left_mag > 0.0 && right_mag > 0.0 {
+                let dot = left.vector_x * right.vector_x + left.vector_y * right.vector_y;
+                let cos_sim = (dot / (left_mag * right_mag)).max(-1.0).min(1.0);
+                consistency += cos_sim;
+            }
+        }
+        consistency /= self.trajectory_left.len() as f32;
+        consistency = consistency.max(0.0);
+        
+        // Calculate entropy (variability in trajectory)
+        let mut entropy = 0.0;
+        let mut histogram = [0.0; 10];
+        for data in self.trajectory_left.iter() {
+            let angle = (data.vector_y.atan2(data.vector_x) + std::f32::consts::PI) / (2.0 * std::f32::consts::PI);
+            let bin = (angle * 10.0).min(9.0) as usize;
+            histogram[bin] += 1.0;
+        }
+        let total = self.trajectory_left.len() as f32;
+        for &count in &histogram {
+            if count > 0.0 {
+                let p = count / total;
+                entropy -= p * p.log2();
+            }
+        }
+        entropy /= 3.32; // Normalize to 0-1 range
+        
+        (smoothness, consistency, entropy)
+    }
+
+    /// Detect attack type based on metrics
+    fn detect_attack_type(&self, smoothness: f32, consistency: f32, entropy: f32) -> AttackType {
+        // Check for static photo (flat trajectory)
+        if entropy < 0.1 && consistency > 0.9 {
+            return AttackType::StaticPhoto;
+        }
+        
+        // Check for AI avatar (too smooth)
+        if smoothness > 0.9 && entropy < 0.3 {
+            return AttackType::AIAvatar;
+        }
+        
+        // Check for deepfake (erratic glints)
+        if consistency < 0.2 && smoothness < 0.3 {
+            return AttackType::Deepfake;
+        }
+        
+        // Check for virtual webcam (low jitter)
+        if entropy < 0.2 && smoothness > 0.8 {
+            return AttackType::VirtualWebcam;
+        }
+        
+        // Check for proxy candidate (mismatched vectors)
+        if let (Some(left), Some(right)) = (self.trajectory_left.back(), self.trajectory_right.back()) {
+            let vec_diff = (left.vector_x - right.vector_x).abs() + 
+                          (left.vector_y - right.vector_y).abs();
+            if vec_diff > 0.5 {
+                return AttackType::ProxyCandidate;
+            }
+        }
+        
+        AttackType::None
     }
 }
 

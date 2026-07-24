@@ -194,3 +194,8 @@ yarn-error.log*
 # Keep package-lock.json and yarn.lock for reproducibility
 # Ignore Python lock files if using pip-tools
 *.egg-info/
+
+# =============================================================================
+# Project History & Documentation
+# =============================================================================
+PROJECT_HISTORY.txt
