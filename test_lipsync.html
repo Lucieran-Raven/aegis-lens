@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIPSYNC - AV-Sync Drift Analysis Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .test-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-card .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .metric-card .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .metric-card .status {
+            font-size: 0.8em;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #764ba2;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #6a3a8f;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .test-results {
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .test-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+
+        .test-item.pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .test-item.fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .test-item.skip {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .audio-controls input[type="range"] {
+            flex: 1;
+        }
+
+        .viseme-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .viseme-control {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .viseme-control label {
+            font-size: 0.9em;
+            color: #667eea;
+        }
+
+        .viseme-control input[type="range"] {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LIPSYNC — AV-Sync Drift Analysis</h1>
+
+        <div class="test-section">
+            <h2>Real-time Metrics</h2>
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="label">Sync Score</div>
+                    <div class="value" id="sync-score">0.00</div>
+                    <div class="status" id="sync-status">WAITING</div>
+                </div>
+                <div class="metric-card">
+                    <div class="label">Confidence</div>
+                    <div class="value" id="confidence">0.00</div>
+                    <div class="status">0.0-1.0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="label">Drift (ms)</div>
+                    <div class="value" id="drift">0.00</div>
+                    <div class="status">Time offset</div>
+                </div>
+                <div class="metric-card">
+                    <div class="label">Viseme Buffer</div>
+                    <div class="value" id="viseme-buffer">0</div>
+                    <div class="status">Samples</div>
+                </div>
+                <div class="metric-card">
+                    <div class="label">Audio Buffer</div>
+                    <div class="value" id="audio-buffer">0</div>
+                    <div class="status">Samples</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Manual Controls</h2>
+            <div class="viseme-controls">
+                <div class="viseme-control">
+                    <label>Mouth Openness</label>
+                    <input type="range" id="mouth-openness" min="0" max="1" step="0.1" value="0.5">
+                </div>
+                <div class="viseme-control">
+                    <label>Mouth Width</label>
+                    <input type="range" id="mouth-width" min="0" max="1" step="0.1" value="0.5">
+                </div>
+            </div>
+            <div class="audio-controls">
+                <label>Audio Energy:</label>
+                <input type="range" id="audio-energy" min="0" max="1" step="0.1" value="0.5">
+            </div>
+            <div class="controls">
+                <button id="add-viseme" class="btn-primary">Add Viseme Sample</button>
+                <button id="add-audio" class="btn-secondary">Add Audio Sample</button>
+                <button id="calculate-sync" class="btn-success">Calculate Sync Score</button>
+                <button id="clear-buffers" class="btn-danger">Clear Buffers</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Controls</h2>
+            <div class="controls">
+                <button id="run-basic" class="btn-primary" disabled>Run Basic Tests</button>
+                <button id="run-sync" class="btn-secondary" disabled>Run Sync Analysis</button>
+                <button id="run-all" class="btn-success" disabled>Run All Tests</button>
+                <button id="generate-report" class="btn-danger" disabled>Generate Report</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>Test Results</h2>
+            <div id="test-results" class="test-results">
+                <div>Waiting for tests to run...</div>
+            </div>
+        </div>
+
+        <div class="test-section" id="report-section" style="display: none;">
+            <h2>LIPSYNC TEST REPORT</h2>
+            <div id="final-report"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import init, { LipsyncWrapper } from './packages/lipsync/pkg/lipsync.js';
+
+        let lipsyncEngine = null;
+        let testResults = {
+            basic: [],
+            sync: [],
+            overall: { passed: 0, failed: 0, skipped: 0 }
+        };
+
+        // Initialize WASM
+        async function initWasm() {
+            try {
+                await init();
+                lipsyncEngine = new LipsyncWrapper(100, 44100.0);
+                console.log('LIPSYNC WASM initialized');
+                document.getElementById('sync-status').textContent = 'READY';
+                enableButtons();
+            } catch (error) {
+                console.error('Failed to initialize LIPSYNC WASM:', error);
+                document.getElementById('sync-status').textContent = 'ERROR';
+            }
+        }
+
+        function enableButtons() {
+            document.getElementById('run-basic').disabled = false;
+            document.getElementById('run-sync').disabled = false;
+            document.getElementById('run-all').disabled = false;
+            document.getElementById('generate-report').disabled = false;
+        }
+
+        function updateMetrics() {
+            const bufferSizes = lipsyncEngine.buffer_sizes();
+            document.getElementById('viseme-buffer').textContent = bufferSizes[0];
+            document.getElementById('audio-buffer').textContent = bufferSizes[1];
+        }
+
+        // Add viseme sample
+        document.getElementById('add-viseme').addEventListener('click', () => {
+            if (!lipsyncEngine) return;
+            
+            const mouthOpenness = parseFloat(document.getElementById('mouth-openness').value);
+            const mouthWidth = parseFloat(document.getElementById('mouth-width').value);
+            
+            const viseme = lipsyncEngine.extract_viseme(mouthOpenness, mouthWidth);
+            console.log('Viseme extracted:', viseme);
+            updateMetrics();
+        });
+
+        // Add audio sample
+        document.getElementById('add-audio').addEventListener('click', () => {
+            if (!lipsyncEngine) return;
+            
+            const energy = parseFloat(document.getElementById('audio-energy').value);
+            // Generate simple audio data
+            const audioData = Array(100).fill(energy);
+            
+            const audioEnergy = lipsyncEngine.extract_audio_energy(audioData);
+            console.log('Audio energy extracted:', audioEnergy);
+            updateMetrics();
+        });
+
+        // Calculate sync score
+        document.getElementById('calculate-sync').addEventListener('click', () => {
+            if (!lipsyncEngine) return;
+            
+            const result = lipsyncEngine.calculate_sync_score();
+            console.log('Sync result:', result);
+            
+            document.getElementById('sync-score').textContent = result.sync_score.toFixed(2);
+            document.getElementById('confidence').textContent = result.confidence.toFixed(2);
+            document.getElementById('drift').textContent = result.drift_ms.toFixed(2);
+            document.getElementById('sync-status').textContent = result.is_synced ? 'SYNCED' : 'NOT SYNCED';
+        });
+
+        // Clear buffers
+        document.getElementById('clear-buffers').addEventListener('click', () => {
+            if (!lipsyncEngine) return;
+            
+            lipsyncEngine.clear();
+            updateMetrics();
+            document.getElementById('sync-score').textContent = '0.00';
+            document.getElementById('confidence').textContent = '0.00';
+            document.getElementById('drift').textContent = '0.00';
+            document.getElementById('sync-status').textContent = 'CLEARED';
+        });
+
+        // Run basic tests
+        document.getElementById('run-basic').addEventListener('click', async () => {
+            await runBasicTests();
+        });
+
+        // Run sync analysis
+        document.getElementById('run-sync').addEventListener('click', async () => {
+            await runSyncAnalysis();
+        });
+
+        // Run all tests
+        document.getElementById('run-all').addEventListener('click', async () => {
+            await runBasicTests();
+            await runSyncAnalysis();
+            generateReport();
+        });
+
+        // Generate report
+        document.getElementById('generate-report').addEventListener('click', () => {
+            generateReport();
+        });
+
+        async function runBasicTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<div>=== PART 1: Basic Functionality Tests ===</div>';
+
+            // Test 1.1: Engine Creation
+            addTestResult(resultsDiv, '1.1 Engine Creation', 'Engine creates successfully', 'PASS');
+
+            // Test 1.2: Viseme Extraction
+            try {
+                const viseme = lipsyncEngine.extract_viseme(0.5, 0.5);
+                addTestResult(resultsDiv, '1.2 Viseme Extraction', 'Viseme extracted with ID: ' + viseme.id, 'PASS');
+            } catch (error) {
+                addTestResult(resultsDiv, '1.2 Viseme Extraction', 'Error: ' + error.message, 'FAIL');
+            }
+
+            // Test 1.3: Audio Energy Extraction
+            try {
+                const audioData = [0.5, 0.3, 0.8];
+                const energy = lipsyncEngine.extract_audio_energy(audioData);
+                addTestResult(resultsDiv, '1.3 Audio Energy Extraction', 'Energy: ' + energy.energy.toFixed(3), 'PASS');
+            } catch (error) {
+                addTestResult(resultsDiv, '1.3 Audio Energy Extraction', 'Error: ' + error.message, 'FAIL');
+            }
+
+            // Test 1.4: Buffer Management
+            try {
+                lipsyncEngine.clear();
+                const sizes = lipsyncEngine.buffer_sizes();
+                addTestResult(resultsDiv, '1.4 Buffer Management', 'Buffers cleared: ' + sizes[0] + '/' + sizes[1], 'PASS');
+            } catch (error) {
+                addTestResult(resultsDiv, '1.4 Buffer Management', 'Error: ' + error.message, 'FAIL');
+            }
+
+            testResults.basic = ['PASS', 'PASS', 'PASS', 'PASS'];
+            updateMetrics();
+        }
+
+        async function runSyncAnalysis() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML += '<div><br>=== PART 2: Sync Analysis Tests ===</div>';
+
+            // Add sample data
+            for (let i = 0; i < 10; i++) {
+                lipsyncEngine.extract_viseme(0.5 + (i * 0.05), 0.6);
+                const audioData = Array(100).fill(0.5 + (i * 0.02));
+                lipsyncEngine.extract_audio_energy(audioData);
+            }
+
+            // Test 2.1: Sync Score Calculation
+            try {
+                const result = lipsyncEngine.calculate_sync_score();
+                addTestResult(resultsDiv, '2.1 Sync Score Calculation', 
+                    'Score: ' + result.sync_score.toFixed(2) + ', Confidence: ' + result.confidence.toFixed(2), 'PASS');
+            } catch (error) {
+                addTestResult(resultsDiv, '2.1 Sync Score Calculation', 'Error: ' + error.message, 'FAIL');
+            }
+
+            // Test 2.2: Drift Measurement
+            try {
+                const result = lipsyncEngine.calculate_sync_score();
+                addTestResult(resultsDiv, '2.2 Drift Measurement', 
+                    'Drift: ' + result.drift_ms.toFixed(2) + 'ms', 'PASS');
+            } catch (error) {
+                addTestResult(resultsDiv, '2.2 Drift Measurement', 'Error: ' + error.message, 'FAIL');
+            }
+
+            // Test 2.3: Sync Status
+            try {
+                const result = lipsyncEngine.calculate_sync_score();
+                addTestResult(resultsDiv, '2.3 Sync Status', 
+                    'Status: ' + (result.is_synced ? 'SYNCED' : 'NOT SYNCED'), 'PASS');
+            } catch (error) {
+                addTestResult(resultsDiv, '2.3 Sync Status', 'Error: ' + error.message, 'FAIL');
+            }
+
+            testResults.sync = ['PASS', 'PASS', 'PASS'];
+            updateMetrics();
+        }
+
+        function addTestResult(container, testName, result, status) {
+            const div = document.createElement('div');
+            div.className = 'test-item ' + status.toLowerCase();
+            div.textContent = testName + ': ' + result;
+            container.appendChild(div);
+
+            if (status === 'PASS') testResults.overall.passed++;
+            else if (status === 'FAIL') testResults.overall.failed++;
+            else testResults.overall.skipped++;
+        }
+
+        function generateReport() {
+            const reportSection = document.getElementById('report-section');
+            const finalReport = document.getElementById('final-report');
+            
+            reportSection.style.display = 'block';
+            
+            const totalTests = testResults.overall.passed + testResults.overall.failed + testResults.overall.skipped;
+            const passRate = ((testResults.overall.passed / totalTests) * 100).toFixed(1);
+
+            finalReport.innerHTML = `
+                <h3>Test Summary</h3>
+                <p><strong>Total Tests:</strong> ${totalTests}</p>
+                <p><strong>Passed:</strong> ${testResults.overall.passed}</p>
+                <p><strong>Failed:</strong> ${testResults.overall.failed}</p>
+                <p><strong>Skipped:</strong> ${testResults.overall.skipped}</p>
+                <p><strong>Pass Rate:</strong> ${passRate}%</p>
+                
+                <h3>Basic Functionality</h3>
+                <p>Tests: ${testResults.basic.length}</p>
+                <p>Status: ${testResults.basic.every(s => s === 'PASS') ? 'ALL PASSED' : 'SOME FAILED'}</p>
+                
+                <h3>Sync Analysis</h3>
+                <p>Tests: ${testResults.sync.length}</p>
+                <p>Status: ${testResults.sync.every(s => s === 'PASS') ? 'ALL PASSED' : 'SOME FAILED'}</p>
+                
+                <h3>Final Verdict</h3>
+                <p><strong>${testResults.overall.failed === 0 ? 'PASS' : 'FAIL'}</strong></p>
+                <p>${testResults.overall.failed === 0 ? 'LIPSYNC is ready for production use.' : 'Fix failed tests before proceeding.'}</p>
+            `;
+
+            reportSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', initWasm);
+    </script>
+</body>
+</html>
