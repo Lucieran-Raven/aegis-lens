@@ -37,14 +37,14 @@ impl PipelineMetrics {
             0.0
         };
         self.last_update = 0.0; // Use 0.0 for non-WASM testing
-        
+
         // Update error rate (simple moving average)
         if success {
             self.error_rate = self.error_rate * 0.9;
         } else {
             self.error_rate = self.error_rate * 0.9 + 0.1;
         }
-        
+
         // Initialize memory usage to a reasonable value
         if self.memory_usage_mb == 0.0 {
             self.memory_usage_mb = 10.0;
@@ -112,7 +112,8 @@ impl Metrics {
         self.total_error_rate = (self.chronos.error_rate
             + self.echo.error_rate
             + self.iris.error_rate
-            + self.lipsync.error_rate) / 4.0;
+            + self.lipsync.error_rate)
+            / 4.0;
 
         self.total_memory_usage_mb = self.chronos.memory_usage_mb
             + self.echo.memory_usage_mb
@@ -222,7 +223,8 @@ impl Monitoring {
     }
 
     pub fn update_pipeline(&mut self, pipeline: &str, processing_time_ms: f64, success: bool) {
-        self.metrics.update_pipeline(pipeline, processing_time_ms, success);
+        self.metrics
+            .update_pipeline(pipeline, processing_time_ms, success);
     }
 
     pub fn check_alerts(&self) -> Vec<String> {
@@ -265,7 +267,8 @@ impl JsMonitoring {
 
     #[wasm_bindgen]
     pub fn update_pipeline(&mut self, pipeline: &str, processing_time_ms: f64, success: bool) {
-        self.inner.update_pipeline(pipeline, processing_time_ms, success);
+        self.inner
+            .update_pipeline(pipeline, processing_time_ms, success);
     }
 
     #[wasm_bindgen]

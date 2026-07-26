@@ -80,10 +80,10 @@ impl Logger {
         }
 
         let entry = LogEntry::new(level, message, pipeline);
-        
+
         let mut entries = self.entries.lock().unwrap();
         entries.push(entry);
-        
+
         if entries.len() > self.max_entries {
             entries.remove(0);
         }
@@ -142,7 +142,7 @@ impl Logger {
         // For now, we'll just use console.log for WASM
         let entry = LogEntry::new(level, message, pipeline);
         let json = serde_json::to_string(&entry).unwrap_or_else(|_| message.to_string());
-        
+
         // Use web_sys console if available
         let _ = match level {
             LogLevel::Error => web_sys::console::error_1(&json.into()),

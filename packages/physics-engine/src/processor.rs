@@ -3,12 +3,12 @@
 //! This module provides real-time processing of data from all 4 physics pipelines
 //! with latency targets of <180ms total.
 
-use serde::{Deserialize, Serialize};
-use crate::collector::{PhysicsData, IrisData, LipsyncData};
+use crate::collector::{IrisData, LipsyncData, PhysicsData};
 use chronos::ChronosResult;
 use echo::EchoResult;
 use iris::{IrisResult, Point2D};
 use lipsync::LipSyncResult;
+use serde::{Deserialize, Serialize};
 
 /// Processed results from all pipelines
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,11 +109,26 @@ impl ChronosProcessor {
         }
 
         let mean = samples.iter().sum::<f64>() / samples.len() as f64;
-        let variance = samples.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / samples.len() as f64;
+        let variance =
+            samples.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / samples.len() as f64;
         let std = variance.sqrt();
 
-        let score = if std < 1.0 { 0.9 } else if std < 5.0 { 0.7 } else if std < 10.0 { 0.5 } else { 0.3 };
-        let status = if score > 0.8 { "CLEAR" } else if score > 0.5 { "SUSPECT" } else { "ANOMALY" };
+        let score = if std < 1.0 {
+            0.9
+        } else if std < 5.0 {
+            0.7
+        } else if std < 10.0 {
+            0.5
+        } else {
+            0.3
+        };
+        let status = if score > 0.8 {
+            "CLEAR"
+        } else if score > 0.5 {
+            "SUSPECT"
+        } else {
+            "ANOMALY"
+        };
 
         ChronosResult {
             score,
@@ -151,11 +166,26 @@ impl EchoProcessor {
         }
 
         let mean = samples.iter().sum::<f32>() / samples.len() as f32;
-        let variance = samples.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / samples.len() as f32;
+        let variance =
+            samples.iter().map(|x| (x - mean).powi(2)).sum::<f32>() / samples.len() as f32;
         let std = variance.sqrt();
 
-        let score = if std < 1.0 { 0.9 } else if std < 5.0 { 0.7 } else if std < 10.0 { 0.5 } else { 0.3 };
-        let status = if score > 0.8 { "CLEAR" } else if score > 0.5 { "SUSPECT" } else { "ANOMALY" };
+        let score = if std < 1.0 {
+            0.9
+        } else if std < 5.0 {
+            0.7
+        } else if std < 10.0 {
+            0.5
+        } else {
+            0.3
+        };
+        let status = if score > 0.8 {
+            "CLEAR"
+        } else if score > 0.5 {
+            "SUSPECT"
+        } else {
+            "ANOMALY"
+        };
 
         EchoResult {
             score: score as f64,
@@ -199,8 +229,20 @@ impl IrisProcessor {
         let face_detected_count = data.iter().filter(|d| d.face_detected).count();
         let avg_variance = data.iter().map(|d| d.eye_variance).sum::<f32>() / data.len() as f32;
 
-        let score = if face_detected_count > data.len() / 2 && avg_variance < 0.5 { 0.9 } else if face_detected_count > data.len() / 4 { 0.7 } else { 0.5 };
-        let status = if score > 0.8 { "CLEAR" } else if score > 0.5 { "SUSPECT" } else { "ANOMALY" };
+        let score = if face_detected_count > data.len() / 2 && avg_variance < 0.5 {
+            0.9
+        } else if face_detected_count > data.len() / 4 {
+            0.7
+        } else {
+            0.5
+        };
+        let status = if score > 0.8 {
+            "CLEAR"
+        } else if score > 0.5 {
+            "SUSPECT"
+        } else {
+            "ANOMALY"
+        };
 
         IrisResult {
             score: score as f64,

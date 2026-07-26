@@ -54,7 +54,11 @@ impl PhysicsEngine {
         let iris_result = self.iris.analyze();
         let lipsync_result = self.lipsync.calculate_sync_score();
 
-        let combined_score = (chronos_result.score + echo_result.score + iris_result.score + lipsync_result.sync_score as f64) / 4.0;
+        let combined_score = (chronos_result.score
+            + echo_result.score
+            + iris_result.score
+            + lipsync_result.sync_score as f64)
+            / 4.0;
 
         let combined_status = if combined_score > 0.8 {
             "CLEAR".to_string()
@@ -150,9 +154,11 @@ impl PhysicsEngine {
         let timestamp = Date::now();
         #[cfg(not(target_arch = "wasm32"))]
         let timestamp = 0.0;
-        
+
         let _viseme_result = self.lipsync.extract_viseme(viseme, audio_energy, timestamp);
-        let _audio_result = self.lipsync.extract_audio_energy(&vec![audio_energy; 100], timestamp);
+        let _audio_result = self
+            .lipsync
+            .extract_audio_energy(&vec![audio_energy; 100], timestamp);
         let sync_result = self.lipsync.calculate_sync_score();
         serde_wasm_bindgen::to_value(&sync_result).unwrap_or(JsValue::NULL)
     }

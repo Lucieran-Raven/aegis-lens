@@ -118,14 +118,19 @@ impl ResultsAggregator {
 
     /// Get weights
     pub fn get_weights(&self) -> (f64, f64, f64, f64) {
-        (self.chronos_weight, self.echo_weight, self.iris_weight, self.lipsync_weight)
+        (
+            self.chronos_weight,
+            self.echo_weight,
+            self.iris_weight,
+            self.lipsync_weight,
+        )
     }
 
     /// Set custom weights (must sum to 1.0)
     pub fn set_weights(&mut self, chronos: f64, echo: f64, iris: f64, lipsync: f64) {
         let sum = chronos + echo + iris + lipsync;
         assert!((sum - 1.0).abs() < 0.001, "Weights must sum to 1.0");
-        
+
         self.chronos_weight = chronos;
         self.echo_weight = echo;
         self.iris_weight = iris;

@@ -6,26 +6,26 @@
 //! - IRIS: Corneal Reflection Parallax
 //! - LIPSYNC: AV-Sync Drift Analysis
 
-pub mod engine;
-pub mod collector;
-pub mod processor;
 pub mod aggregator;
+pub mod collector;
+pub mod engine;
 pub mod error;
 pub mod logging;
 pub mod monitoring;
+pub mod processor;
 
 // Re-export key types
-pub use engine::PhysicsEngine;
+pub use aggregator::{DetailedResults, PhysicsResult, ResultsAggregator};
 pub use collector::{DataCollector, IrisData, LipsyncData, PhysicsData};
-pub use processor::{RealTimeProcessor, ProcessedResults};
-pub use aggregator::{ResultsAggregator, PhysicsResult, DetailedResults};
-pub use error::{PhysicsError, ErrorHandler, ErrorContext};
-pub use logging::{Logger, LogLevel, LogEntry, JsLogger};
-pub use monitoring::{Monitoring, Metrics, PipelineMetrics, AlertThresholds};
+pub use engine::PhysicsEngine;
+pub use error::{ErrorContext, ErrorHandler, PhysicsError};
+pub use logging::{JsLogger, LogEntry, LogLevel, Logger};
+pub use monitoring::{AlertThresholds, Metrics, Monitoring, PipelineMetrics};
+pub use processor::{ProcessedResults, RealTimeProcessor};
 
 // Re-export from individual pipelines
-pub use iris::{SimpleFaceLandmarks, EyeLandmark, EyeType, Point2D};
-pub use lipsync::{Viseme, AudioEnergy};
+pub use iris::{EyeLandmark, EyeType, Point2D, SimpleFaceLandmarks};
+pub use lipsync::{AudioEnergy, Viseme};
 
 use wasm_bindgen::prelude::*;
 
@@ -49,5 +49,6 @@ pub fn get_info() -> JsValue {
         "version": "0.1.0",
         "pipelines": ["CHRONOS", "ECHO", "IRIS", "LIPSYNC"],
         "description": "Unified physics pipeline integration for Aegis Lens"
-    })).unwrap_or(JsValue::NULL)
+    }))
+    .unwrap_or(JsValue::NULL)
 }

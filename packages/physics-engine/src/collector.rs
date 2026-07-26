@@ -3,10 +3,10 @@
 //! This module provides a unified data collection pipeline that collects data
 //! from all 4 physics pipelines simultaneously with synchronized timestamps.
 
+use iris::SimpleFaceLandmarks;
+use lipsync::{AudioEnergy, Viseme};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
-use iris::SimpleFaceLandmarks;
-use lipsync::{Viseme, AudioEnergy};
 
 /// IRIS data for collection
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,7 +18,11 @@ pub struct IrisData {
 }
 
 impl IrisData {
-    pub fn new(face_landmarks: Option<SimpleFaceLandmarks>, face_detected: bool, eye_variance: f32) -> Self {
+    pub fn new(
+        face_landmarks: Option<SimpleFaceLandmarks>,
+        face_detected: bool,
+        eye_variance: f32,
+    ) -> Self {
         Self {
             face_landmarks,
             face_detected,
@@ -26,12 +30,12 @@ impl IrisData {
             timestamp: Self::get_timestamp(),
         }
     }
-    
+
     #[cfg(target_arch = "wasm32")]
     fn get_timestamp() -> u64 {
         js_sys::Date::now() as u64
     }
-    
+
     #[cfg(not(target_arch = "wasm32"))]
     fn get_timestamp() -> u64 {
         0u64
@@ -56,12 +60,12 @@ impl LipsyncData {
             timestamp: Self::get_timestamp(),
         }
     }
-    
+
     #[cfg(target_arch = "wasm32")]
     fn get_timestamp() -> u64 {
         js_sys::Date::now() as u64
     }
-    
+
     #[cfg(not(target_arch = "wasm32"))]
     fn get_timestamp() -> u64 {
         0u64
@@ -84,7 +88,7 @@ impl DataCollector {
         let timestamp = js_sys::Date::now() as u64;
         #[cfg(not(target_arch = "wasm32"))]
         let timestamp = 0u64;
-        
+
         Self {
             chronos_buffer: VecDeque::with_capacity(1000),
             echo_buffer: VecDeque::with_capacity(100),
@@ -171,10 +175,10 @@ impl DataCollector {
         if self.iris_buffer.is_empty() || self.lipsync_buffer.is_empty() {
             return false;
         }
-        
+
         let iris_time = self.iris_buffer.back().map(|d| d.timestamp).unwrap_or(0);
         let lipsync_time = self.lipsync_buffer.back().map(|d| d.timestamp).unwrap_or(0);
-        
+
         (iris_time as i64 - lipsync_time as i64).abs() < 100
     }
 
@@ -186,12 +190,12 @@ impl DataCollector {
         self.lipsync_buffer.clear();
         self.timestamp = Self::get_timestamp();
     }
-    
+
     #[cfg(target_arch = "wasm32")]
     fn get_timestamp() -> u64 {
         js_sys::Date::now() as u64
     }
-    
+
     #[cfg(not(target_arch = "wasm32"))]
     fn get_timestamp() -> u64 {
         0u64

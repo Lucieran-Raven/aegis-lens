@@ -98,13 +98,13 @@ impl ErrorHandler {
     /// Handle an error
     pub fn handle_error(&mut self, error: PhysicsError, pipeline: &str) -> Result<()> {
         self.error_count += 1;
-        
+
         let context = ErrorContext::new(&error, pipeline, self.recovery_strategy);
         self.error_history.push(context);
 
         if self.error_count >= self.max_errors {
             return Err(PhysicsError::InitializationError(
-                "Max errors exceeded".to_string()
+                "Max errors exceeded".to_string(),
             ));
         }
 
@@ -158,7 +158,8 @@ mod tests {
     #[test]
     fn test_error_handler_abort() {
         let mut handler = ErrorHandler::new(10, RecoveryStrategy::Abort);
-        let result = handler.handle_error(PhysicsError::ChronosError("test".to_string()), "chronos");
+        let result =
+            handler.handle_error(PhysicsError::ChronosError("test".to_string()), "chronos");
         assert!(result.is_err());
     }
 
