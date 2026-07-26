@@ -36,6 +36,12 @@ pub struct PhysicsResult {
     pub lipsync_score: f64,
 }
 
+impl Default for PhysicsEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PhysicsEngine {
     /// Create a new physics engine
     pub fn new_native() -> Self {

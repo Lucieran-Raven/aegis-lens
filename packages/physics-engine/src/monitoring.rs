@@ -40,7 +40,7 @@ impl PipelineMetrics {
 
         // Update error rate (simple moving average)
         if success {
-            self.error_rate = self.error_rate * 0.9;
+            self.error_rate *= 0.9;
         } else {
             self.error_rate = self.error_rate * 0.9 + 0.1;
         }
@@ -254,6 +254,12 @@ impl Default for Monitoring {
 #[wasm_bindgen]
 pub struct JsMonitoring {
     inner: Monitoring,
+}
+
+impl Default for JsMonitoring {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[wasm_bindgen]

@@ -91,10 +91,16 @@ impl LipsyncEngine {
     pub fn extract_viseme(&mut self, mouth_openness: f32, mouth_width: f32, timestamp: f64) -> Viseme {
         // Simplified viseme mapping based on mouth features
         let viseme_id = if mouth_openness > 0.5 {
-            if mouth_width > 0.6 { 10 } else { 11 } // Open mouth variations
+            if mouth_width > 0.6 {
+                10
+            } else {
+                11
+            } // Open mouth variations
+        } else if mouth_width > 0.5 {
+            5
         } else {
-            if mouth_width > 0.5 { 5 } else { 0 } // Closed mouth variations
-        };
+            0
+        }; // Closed mouth variations
 
         let viseme = Viseme::new(viseme_id, 0.8, timestamp);
         

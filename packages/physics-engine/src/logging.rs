@@ -144,7 +144,7 @@ impl Logger {
         let json = serde_json::to_string(&entry).unwrap_or_else(|_| message.to_string());
 
         // Use web_sys console if available
-        let _ = match level {
+        match level {
             LogLevel::Error => web_sys::console::error_1(&json.into()),
             LogLevel::Warn => web_sys::console::warn_1(&json.into()),
             LogLevel::Info => web_sys::console::log_1(&json.into()),

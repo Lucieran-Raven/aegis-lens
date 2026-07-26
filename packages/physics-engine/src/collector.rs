@@ -81,6 +81,12 @@ pub struct DataCollector {
     timestamp: u64,
 }
 
+impl Default for DataCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DataCollector {
     /// Create a new data collector
     pub fn new() -> Self {
@@ -209,6 +215,12 @@ pub struct PhysicsData {
     pub echo_samples: Vec<f32>,
     pub iris_data: Vec<IrisData>,
     pub lipsync_data: Vec<LipsyncData>,
+}
+
+impl Default for PhysicsData {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PhysicsData {

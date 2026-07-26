@@ -29,6 +29,12 @@ pub struct RealTimeProcessor {
     lipsync_processor: LipsyncProcessor,
 }
 
+impl Default for RealTimeProcessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RealTimeProcessor {
     /// Create a new real-time processor
     pub fn new() -> Self {
@@ -188,7 +194,7 @@ impl EchoProcessor {
         };
 
         EchoResult {
-            score: score as f64,
+            score,
             status: status.to_string(),
             mean_tof: mean as f64,
             std_tof: std as f64,
@@ -245,7 +251,7 @@ impl IrisProcessor {
         };
 
         IrisResult {
-            score: score as f64,
+            score,
             status: status.to_string(),
             eye_variance: avg_variance,
             vector_count: data.len(),
