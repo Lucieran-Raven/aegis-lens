@@ -4,6 +4,7 @@ members = [
     "packages/echo",
     "packages/iris",
     "packages/lipsync",
+    "packages/physics-engine",
 ]
 resolver = "2"
 
