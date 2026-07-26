@@ -4,8 +4,8 @@
 //! compiled to WebAssembly for browser use.
 
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 use std::collections::VecDeque;
+use wasm_bindgen::prelude::*;
 
 /// Viseme (mouth shape) representation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,7 +17,11 @@ pub struct Viseme {
 
 impl Viseme {
     pub fn new(id: u8, confidence: f32, timestamp: f64) -> Self {
-        Self { id, confidence, timestamp }
+        Self {
+            id,
+            confidence,
+            timestamp,
+        }
     }
 }
 
@@ -31,7 +35,11 @@ pub struct AudioEnergy {
 
 impl AudioEnergy {
     pub fn new(energy: f32, frequency: f32, timestamp: f64) -> Self {
-        Self { energy, frequency, timestamp }
+        Self {
+            energy,
+            frequency,
+            timestamp,
+        }
     }
 }
 
@@ -45,7 +53,11 @@ pub struct CrossSpectralDensity {
 
 impl CrossSpectralDensity {
     pub fn new(magnitude: f32, phase: f32, frequency: f32) -> Self {
-        Self { magnitude, phase, frequency }
+        Self {
+            magnitude,
+            phase,
+            frequency,
+        }
     }
 }
 
@@ -60,8 +72,20 @@ pub struct LipSyncResult {
 }
 
 impl LipSyncResult {
-    pub fn new(sync_score: f32, confidence: f32, drift_ms: f32, is_synced: bool, timestamp: f64) -> Self {
-        Self { sync_score, confidence, drift_ms, is_synced, timestamp }
+    pub fn new(
+        sync_score: f32,
+        confidence: f32,
+        drift_ms: f32,
+        is_synced: bool,
+        timestamp: f64,
+    ) -> Self {
+        Self {
+            sync_score,
+            confidence,
+            drift_ms,
+            is_synced,
+            timestamp,
+        }
     }
 
     pub fn is_reliable(&self) -> bool {
@@ -88,7 +112,12 @@ impl LipsyncEngine {
     }
 
     /// Extract viseme from facial landmarks (simplified)
-    pub fn extract_viseme(&mut self, mouth_openness: f32, mouth_width: f32, timestamp: f64) -> Viseme {
+    pub fn extract_viseme(
+        &mut self,
+        mouth_openness: f32,
+        mouth_width: f32,
+        timestamp: f64,
+    ) -> Viseme {
         // Simplified viseme mapping based on mouth features
         let viseme_id = if mouth_openness > 0.5 {
             if mouth_width > 0.6 {
@@ -103,7 +132,7 @@ impl LipsyncEngine {
         }; // Closed mouth variations
 
         let viseme = Viseme::new(viseme_id, 0.8, timestamp);
-        
+
         self.viseme_buffer.push_back(viseme.clone());
         if self.viseme_buffer.len() > self.window_size {
             self.viseme_buffer.pop_front();
@@ -116,12 +145,12 @@ impl LipsyncEngine {
     pub fn extract_audio_energy(&mut self, audio_data: &[f32], timestamp: f64) -> AudioEnergy {
         let energy: f32 = audio_data.iter().map(|&x| x * x).sum::<f32>() / audio_data.len() as f32;
         let energy = energy.sqrt();
-        
+
         // Estimate dominant frequency (simplified)
         let frequency = self.estimate_frequency(audio_data);
 
         let audio_energy = AudioEnergy::new(energy, frequency, timestamp);
-        
+
         self.audio_buffer.push_back(audio_energy.clone());
         if self.audio_buffer.len() > self.window_size {
             self.audio_buffer.pop_front();
@@ -164,7 +193,8 @@ impl LipsyncEngine {
 
         let magnitude = (viseme_energy * audio_energy).sqrt() / (self.viseme_buffer.len() as f32);
         let phase = 0.0; // Simplified - would need FFT for actual phase
-        let frequency = self.audio_buffer.iter().map(|a| a.frequency).sum::<f32>() / self.audio_buffer.len() as f32;
+        let frequency = self.audio_buffer.iter().map(|a| a.frequency).sum::<f32>()
+            / self.audio_buffer.len() as f32;
 
         Some(CrossSpectralDensity::new(magnitude, phase, frequency))
     }
@@ -172,15 +202,15 @@ impl LipsyncEngine {
     /// Calculate sync score based on viseme-audio alignment
     pub fn calculate_sync_score(&self) -> LipSyncResult {
         let csd = self.calculate_cross_spectral_density();
-        
+
         let (sync_score, confidence, drift_ms) = if let Some(csd) = csd {
             // Calculate drift based on timestamp differences
             let drift = self.calculate_drift();
-            
+
             // Sync score based on cross-spectral magnitude and drift
             let score = (csd.magnitude * 0.7 + (1.0 - drift.min(1.0)) * 0.3).min(1.0);
             let conf = if csd.magnitude > 0.5 { 0.9 } else { 0.6 };
-            
+
             (score, conf, drift * 1000.0) // Convert to milliseconds
         } else {
             (0.0, 0.0, 0.0)
@@ -200,7 +230,7 @@ impl LipsyncEngine {
 
         let viseme_time = self.viseme_buffer.back().unwrap().timestamp;
         let audio_time = self.audio_buffer.back().unwrap().timestamp;
-        
+
         (viseme_time - audio_time).abs() as f32 / 1000.0 // Normalize to seconds
     }
 
@@ -239,7 +269,9 @@ impl LipsyncWrapper {
     #[wasm_bindgen]
     pub fn extract_viseme(&mut self, mouth_openness: f32, mouth_width: f32) -> JsValue {
         let timestamp = js_sys::Date::now();
-        let viseme = self.engine.extract_viseme(mouth_openness, mouth_width, timestamp);
+        let viseme = self
+            .engine
+            .extract_viseme(mouth_openness, mouth_width, timestamp);
         serde_wasm_bindgen::to_value(&viseme).unwrap()
     }
 
@@ -308,18 +340,18 @@ mod tests {
     #[test]
     fn test_sync_score_calculation() {
         let mut engine = LipsyncEngine::new(10, 44100.0);
-        
+
         // Add some viseme data
         for i in 0..5 {
             engine.extract_viseme(0.5 + (i as f32 * 0.1), 0.6, i as f64 * 100.0);
         }
-        
+
         // Add some audio data
         for i in 0..5 {
             let audio_data = vec![0.5, -0.3, 0.8];
             engine.extract_audio_energy(&audio_data, i as f64 * 100.0);
         }
-        
+
         // Test cross-spectral density calculation instead (doesn't use js_sys)
         let csd = engine.calculate_cross_spectral_density();
         assert!(csd.is_some());
