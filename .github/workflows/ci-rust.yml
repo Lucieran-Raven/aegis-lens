@@ -8,6 +8,7 @@ on:
       - 'packages/echo/**'
       - 'packages/iris/**'
       - 'packages/lipsync/**'
+      - 'packages/physics-engine/**'
       - 'docs/**'
       - 'test_chronos_echo.html'
   pull_request:
@@ -17,6 +18,7 @@ on:
       - 'packages/echo/**'
       - 'packages/iris/**'
       - 'packages/lipsync/**'
+      - 'packages/physics-engine/**'
       - 'docs/**'
       - 'test_chronos_echo.html'
   workflow_dispatch:
@@ -31,7 +33,7 @@ jobs:
     
     strategy:
       matrix:
-        package: [chronos, echo, iris]
+        package: [chronos, echo, iris, lipsync, physics-engine]
     
     steps:
       - name: Checkout code
