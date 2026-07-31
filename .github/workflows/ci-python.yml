@@ -52,6 +52,9 @@ jobs:
           if [ -f packages/${{ matrix.package }}/requirements.txt ]; then
             pip install -r packages/${{ matrix.package }}/requirements.txt
           fi
+          if [ -f packages/${{ matrix.package }}/pyproject.toml ]; then
+            pip install -e packages/${{ matrix.package }}
+          fi
           pip install pytest pytest-cov flake8 black
       
       - name: Check formatting with black
