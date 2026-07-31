@@ -11,8 +11,10 @@ from typing import Dict, Any, Optional
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+import os
 
 from src.base import BaseAgent, AgentConfig, AgentResult, AgentStatus, AgentPriority
+from src.redis_client import RedisManager
 
 
 # Pydantic models for API requests/responses
@@ -64,16 +66,46 @@ class StatsResponse(BaseModel):
 
 # Global agent registry
 agent_registry: Dict[str, BaseAgent] = {}
+# Global Redis manager
+redis_manager: Optional[RedisManager] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan"""
+    global redis_manager
     # Startup
     logging.info("Starting Aegis Agents Service...")
+    
+    # Initialize Redis if enabled
+    redis_enabled = os.getenv("REDIS_ENABLED", "false").lower() == "true"
+    if redis_enabled:
+        redis_host = os.getenv("REDIS_HOST", "localhost")
+        redis_port = int(os.getenv("REDIS_PORT", "6379"))
+        redis_db = int(os.getenv("REDIS_DB", "0"))
+        redis_password = os.getenv("REDIS_PASSWORD")
+        
+        try:
+            redis_manager = RedisManager(
+                host=redis_host,
+                port=redis_port,
+                db=redis_db,
+                password=redis_password,
+            )
+            await redis_manager.connect()
+            logging.info("Redis connection established")
+        except Exception as e:
+            logging.warning(f"Failed to connect to Redis: {str(e)}. Running without caching.")
+            redis_manager = None
+    else:
+        logging.info("Redis disabled. Running without caching.")
+    
     yield
     # Shutdown
     logging.info("Shutting down Aegis Agents Service...")
+    if redis_manager:
+        await redis_manager.disconnect()
+        logging.info("Redis connection closed")
 
 
 # Create FastAPI application
@@ -158,8 +190,34 @@ async def execute_agent(request: AgentExecuteRequest):
     
     # Get agent and execute
     agent = agent_registry[agent_id]
+    
+    # Check cache if enabled
+    cache_key = f"agent:{agent_id}:{hash(str(request.input_data))}"
+    if config.enable_cache and redis_manager:
+        cached_result = await redis_manager.get_cached_result(cache_key)
+        if cached_result:
+            logging.info(f"Returning cached result for agent {agent_id}")
+            return AgentExecuteResponse(**cached_result)
+    
     try:
         result = agent.execute(request.input_data)
+        
+        # Cache result if enabled and successful
+        if config.enable_cache and redis_manager and result.status == AgentStatus.COMPLETED:
+            result_dict = result.to_dict()
+            await redis_manager.cache_result(cache_key, result_dict, config.cache_ttl_seconds)
+            logging.info(f"Cached result for agent {agent_id}")
+        
+        # Publish event if Redis is available
+        if redis_manager:
+            event = {
+                "agent_id": agent_id,
+                "status": result.status.value,
+                "score": result.score,
+                "timestamp": result.timestamp,
+            }
+            await redis_manager.publish_event("agent:execution", event)
+        
         return AgentExecuteResponse(
             agent_id=result.agent_id,
             status=result.status.value,
