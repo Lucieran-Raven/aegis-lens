@@ -18,7 +18,7 @@ class RedisManager:
     """
     Redis connection manager for caching and pub/sub.
     """
-    
+
     def __init__(
         self,
         host: str = "localhost",
@@ -29,7 +29,7 @@ class RedisManager:
     ):
         """
         Initialize Redis manager.
-        
+
         Args:
             host: Redis host
             port: Redis port
@@ -45,7 +45,7 @@ class RedisManager:
         self._client: Optional[Redis] = None
         self._pubsub: Optional[redis.PubSub] = None
         self.logger = logging.getLogger("aegis.agents.redis")
-    
+
     async def connect(self) -> None:
         """Establish Redis connection."""
         try:
@@ -62,7 +62,7 @@ class RedisManager:
         except Exception as e:
             self.logger.error(f"Failed to connect to Redis: {str(e)}")
             raise
-    
+
     async def disconnect(self) -> None:
         """Close Redis connection."""
         if self._pubsub:
@@ -72,14 +72,14 @@ class RedisManager:
             await self._client.close()
             self._client = None
             self.logger.info("Disconnected from Redis")
-    
+
     @property
     def client(self) -> Redis:
         """Get Redis client (raises if not connected)."""
         if self._client is None:
             raise RuntimeError("Redis client not connected. Call connect() first.")
         return self._client
-    
+
     async def cache_result(
         self,
         key: str,
@@ -88,7 +88,7 @@ class RedisManager:
     ) -> None:
         """
         Cache agent result in Redis.
-        
+
         Args:
             key: Cache key
             result: Result data to cache
@@ -100,14 +100,14 @@ class RedisManager:
             self.logger.debug(f"Cached result for key: {key} (TTL: {ttl_seconds}s)")
         except Exception as e:
             self.logger.error(f"Failed to cache result: {str(e)}")
-    
+
     async def get_cached_result(self, key: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve cached result from Redis.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             Cached result if exists, None otherwise
         """
@@ -121,14 +121,14 @@ class RedisManager:
         except Exception as e:
             self.logger.error(f"Failed to retrieve cached result: {str(e)}")
             return None
-    
+
     async def delete_cached_result(self, key: str) -> bool:
         """
         Delete cached result from Redis.
-        
+
         Args:
             key: Cache key
-            
+
         Returns:
             True if deleted, False otherwise
         """
@@ -141,11 +141,11 @@ class RedisManager:
         except Exception as e:
             self.logger.error(f"Failed to delete cached result: {str(e)}")
             return False
-    
+
     async def publish_event(self, channel: str, event: Dict[str, Any]) -> None:
         """
         Publish event to Redis channel.
-        
+
         Args:
             channel: Channel name
             event: Event data to publish
@@ -156,11 +156,11 @@ class RedisManager:
             self.logger.debug(f"Published event to channel: {channel}")
         except Exception as e:
             self.logger.error(f"Failed to publish event: {str(e)}")
-    
+
     async def subscribe(self, channel: str) -> None:
         """
         Subscribe to Redis channel.
-        
+
         Args:
             channel: Channel name
         """
@@ -172,11 +172,11 @@ class RedisManager:
         except Exception as e:
             self.logger.error(f"Failed to subscribe to channel: {str(e)}")
             raise
-    
+
     async def unsubscribe(self, channel: str) -> None:
         """
         Unsubscribe from Redis channel.
-        
+
         Args:
             channel: Channel name
         """
@@ -186,17 +186,17 @@ class RedisManager:
                 self.logger.info(f"Unsubscribed from channel: {channel}")
         except Exception as e:
             self.logger.error(f"Failed to unsubscribe from channel: {str(e)}")
-    
+
     async def listen(self, callback: Callable[[Dict[str, Any]], None]) -> None:
         """
         Listen for messages on subscribed channels.
-        
+
         Args:
             callback: Callback function to handle messages
         """
         if self._pubsub is None:
             raise RuntimeError("Not subscribed to any channels. Call subscribe() first.")
-        
+
         try:
             async for message in self._pubsub.listen():
                 if message["type"] == "message":
@@ -208,11 +208,11 @@ class RedisManager:
         except Exception as e:
             self.logger.error(f"Error listening for messages: {str(e)}")
             raise
-    
+
     async def get_stats(self) -> Dict[str, Any]:
         """
         Get Redis statistics.
-        
+
         Returns:
             Dictionary with Redis stats
         """
@@ -239,13 +239,13 @@ async def get_redis_manager(
 ) -> RedisManager:
     """
     Context manager for Redis connection.
-    
+
     Args:
         host: Redis host
         port: Redis port
         db: Redis database number
         password: Redis password (optional)
-        
+
     Yields:
         RedisManager instance
     """
