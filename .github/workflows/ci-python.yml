@@ -4,6 +4,7 @@ on:
   push:
     branches: [main, develop]
     paths:
+      - 'packages/agents/**'
       - 'packages/nova/**'
       - 'packages/sentient/**'
       - 'packages/aura/**'
@@ -14,6 +15,7 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
+      - 'packages/agents/**'
       - 'packages/nova/**'
       - 'packages/sentient/**'
       - 'packages/aura/**'
@@ -32,7 +34,7 @@ jobs:
     
     strategy:
       matrix:
-        package: [nova, sentient, aura, kai, spider, oracle, orchestrator]
+        package: [agents, nova, sentient, aura, kai, spider, oracle, orchestrator]
     
     steps:
       - name: Checkout code
