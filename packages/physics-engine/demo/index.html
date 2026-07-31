@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS LENS - Core Tech Validation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #e94560;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #a0a0a0;
+            font-size: 1.1em;
+        }
+
+        .status-panel {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-title {
+            font-size: 1.5em;
+            color: #e94560;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-ready {
+            background: #0f3460;
+            color: #fff;
+        }
+
+        .status-running {
+            background: #f39c12;
+            color: #000;
+        }
+
+        .status-complete {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #0f3460;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #f39c12);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #a0a0a0;
+            font-size: 0.9em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #d63850;
+        }
+
+        .btn-secondary {
+            background: #0f3460;
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #1a4a7a;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #219150;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-panel {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .results-header {
+            font-size: 1.3em;
+            color: #e94560;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            border-left: 4px solid #0f3460;
+        }
+
+        .result-item.pass {
+            border-left-color: #27ae60;
+        }
+
+        .result-item.fail {
+            border-left-color: #e94560;
+        }
+
+        .result-name {
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .result-stats {
+            color: #a0a0a0;
+            margin-right: 20px;
+        }
+
+        .result-status {
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 4px;
+        }
+
+        .result-status.pass {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .result-status.fail {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .logs-panel {
+            background: #16213e;
+            border: 2px solid #0f3460;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .logs-header {
+            font-size: 1.3em;
+            color: #e94560;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            border-left: 3px solid #0f3460;
+            padding-left: 10px;
+        }
+
+        .log-entry.info {
+            border-left-color: #3498db;
+            color: #3498db;
+        }
+
+        .log-entry.pass {
+            border-left-color: #27ae60;
+            color: #27ae60;
+        }
+
+        .log-entry.fail {
+            border-left-color: #e94560;
+            color: #e94560;
+        }
+
+        .log-entry.error {
+            border-left-color: #e94560;
+            color: #e94560;
+        }
+
+        .error-catcher-panel {
+            background: #16213e;
+            border: 2px solid #e94560;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .error-catcher-header {
+            font-size: 1.3em;
+            color: #e94560;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e94560;
+        }
+
+        .error-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .error-stat {
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .error-stat.errors {
+            background: #e94560;
+            color: #fff;
+        }
+
+        .error-stat.warnings {
+            background: #f39c12;
+            color: #000;
+        }
+
+        .error-stat.logs {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .error-list {
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .error-item {
+            padding: 8px;
+            margin-bottom: 4px;
+            background: #1a1a2e;
+            border-left: 3px solid #0f3460;
+            padding-left: 10px;
+        }
+
+        .error-item.critical {
+            border-left-color: #e94560;
+        }
+
+        .error-item.warning {
+            border-left-color: #f39c12;
+        }
+
+        .error-item.info {
+            border-left-color: #3498db;
+        }
+
+        .timestamp {
+            color: #a0a0a0;
+            margin-right: 10px;
+        }
+
+        .error-message {
+            color: #fff;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AEGIS LENS — CORE TECH VALIDATION</h1>
+            <p>BRUTAL COMPLETE CORE VALIDATION TESTS</p>
+        </div>
+
+        <div class="status-panel">
+            <div class="status-header">
+                <div class="status-title">Validation Status</div>
+                <div id="status-badge" class="status-badge status-ready">READY</div>
+            </div>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%">0%</div>
+            </div>
+            <div id="progress-text" class="progress-text">0/0 tests completed</div>
+        </div>
+
+        <div class="controls">
+            <button id="run-all" class="btn btn-primary">▶ Run All Tests</button>
+            <button id="run-chronos" class="btn btn-secondary">▶ Run CHRONOS</button>
+            <button id="run-echo" class="btn btn-secondary">▶ Run ECHO</button>
+            <button id="run-iris" class="btn btn-secondary">▶ Run IRIS</button>
+            <button id="run-lipsync" class="btn btn-secondary">▶ Run LIPSYNC</button>
+            <button id="export-results" class="btn btn-success">📋 Export Results</button>
+        </div>
+
+        <div class="results-panel">
+            <div class="results-header">TEST RESULTS</div>
+            <div id="results-container">
+                <div class="result-item">
+                    <div class="result-name">CHRONOS</div>
+                    <div class="result-stats">0/11 tests</div>
+                    <div class="result-status">PENDING</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-name">ECHO</div>
+                    <div class="result-stats">0/11 tests</div>
+                    <div class="result-status">PENDING</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-name">IRIS</div>
+                    <div class="result-stats">0/11 tests</div>
+                    <div class="result-status">PENDING</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-name">LIPSYNC</div>
+                    <div class="result-stats">0/11 tests</div>
+                    <div class="result-status">PENDING</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-name">PHYSICS ENGINE</div>
+                    <div class="result-stats">0/12 tests</div>
+                    <div class="result-status">PENDING</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-name">INTEGRATION</div>
+                    <div class="result-stats">0/4 tests</div>
+                    <div class="result-status">PENDING</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-name">ERROR HANDLING</div>
+                    <div class="result-stats">0/6 tests</div>
+                    <div class="result-status">PENDING</div>
+                </div>
+                <div class="result-item">
+                    <div class="result-name">EDGE CASES</div>
+                    <div class="result-stats">0/7 tests</div>
+                    <div class="result-status">PENDING</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="logs-panel">
+            <div class="logs-header">DETAILED LOGS</div>
+            <div id="logs-container">
+                <div class="log-entry info">Waiting for tests to start...</div>
+            </div>
+        </div>
+
+        <div class="error-catcher-panel">
+            <div class="error-catcher-header">🔴 ERROR CATCHER</div>
+            <div class="error-stats">
+                <div id="error-count" class="error-stat errors">0 ERRORS</div>
+                <div id="warning-count" class="error-stat warnings">0 WARNINGS</div>
+                <div id="log-count" class="error-stat logs">0 LOGS</div>
+            </div>
+            <div id="error-list" class="error-list">
+                <div class="error-item info">
+                    <span class="timestamp">--:--:--</span>
+                    <span class="error-message">No errors captured yet</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="error-catcher.js?nocache=2"></script>
+    <script src="test-suite.js?nocache=2"></script>
+    <script>
+        // Initialize test suite
+        const testSuite = new TestSuite();
+        let isRunning = false;
+
+        // DOM elements
+        const statusBadge = document.getElementById('status-badge');
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.getElementById('progress-text');
+        const resultsContainer = document.getElementById('results-container');
+        const logsContainer = document.getElementById('logs-container');
+        const errorCount = document.getElementById('error-count');
+        const warningCount = document.getElementById('warning-count');
+        const logCount = document.getElementById('log-count');
+        const errorList = document.getElementById('error-list');
+
+        // Buttons
+        const runAllBtn = document.getElementById('run-all');
+        const runChronosBtn = document.getElementById('run-chronos');
+        const runEchoBtn = document.getElementById('run-echo');
+        const runIrisBtn = document.getElementById('run-iris');
+        const runLipsyncBtn = document.getElementById('run-lipsync');
+        const exportResultsBtn = document.getElementById('export-results');
+
+        // Set progress callback
+        testSuite.setProgressCallback((update) => {
+            addLog(update.passed ? 'pass' : 'fail', `${update.category}: ${update.testName} - ${update.message} (${update.duration.toFixed(2)}ms)`);
+            updateResults();
+        });
+
+        // Add log entry
+        function addLog(type, message) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+            entry.textContent = `${timestamp} ${message}`;
+            logsContainer.appendChild(entry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        // Update results display
+        function updateResults() {
+            const results = testSuite.getResults();
+            const categories = [
+                { key: 'chronos', name: 'CHRONOS', total: 11 },
+                { key: 'echo', name: 'ECHO', total: 10 },
+                { key: 'iris', name: 'IRIS', total: 11 },
+                { key: 'lipsync', name: 'LIPSYNC', total: 11 },
+                { key: 'physics', name: 'PHYSICS ENGINE', total: 12 },
+                { key: 'integration', name: 'INTEGRATION', total: 4 },
+                { key: 'errors', name: 'ERROR HANDLING', total: 6 },
+                { key: 'edgeCases', name: 'EDGE CASES', total: 7 }
+            ];
+
+            let totalPassed = 0;
+            let totalTests = 0;
+
+            resultsContainer.innerHTML = categories.map(cat => {
+                const catResults = results[cat.key];
+                const passed = catResults ? catResults.passed : 0;
+                const failed = catResults ? catResults.failed : 0;
+                const completed = passed + failed;
+                const allPassed = completed === cat.total && failed === 0;
+                const hasFailures = failed > 0;
+
+                totalPassed += passed;
+                totalTests += cat.total;
+
+                return `
+                    <div class="result-item ${allPassed ? 'pass' : ''} ${hasFailures ? 'fail' : ''}">
+                        <div class="result-name">${cat.name}</div>
+                        <div class="result-stats">${passed}/${cat.total} tests</div>
+                        <div class="result-status ${allPassed ? 'pass' : hasFailures ? 'fail' : ''}">
+                            ${completed === 0 ? 'PENDING' : allPassed ? 'PASS' : 'FAIL'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update progress
+            const progress = totalTests > 0 ? (totalPassed / totalTests) * 100 : 0;
+            progressFill.style.width = `${progress}%`;
+            progressFill.textContent = `${Math.round(progress)}%`;
+            progressText.textContent = `${totalPassed}/${totalTests} tests completed`;
+        }
+
+        // Update error catcher display
+        function updateErrorCatcher() {
+            if (window.errorCatcher) {
+                const stats = window.errorCatcher.getStats();
+                errorCount.textContent = `${stats.errors} ERRORS`;
+                warningCount.textContent = `${stats.warnings} WARNINGS`;
+                logCount.textContent = `${stats.logs} LOGS`;
+
+                // Update error list
+                const allErrors = [
+                    ...window.errorCatcher.errors.map(e => ({...e, type: 'critical'})),
+                    ...window.errorCatcher.warnings.map(w => ({...w, type: 'warning'})),
+                    ...window.errorCatcher.logs.slice(-10).map(l => ({...l, type: 'info'}))
+                ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+                if (allErrors.length > 0) {
+                    errorList.innerHTML = allErrors.map(err => {
+                        const timestamp = new Date(err.timestamp).toLocaleTimeString('en-US', { hour12: false });
+                        return `
+                            <div class="error-item ${err.type}">
+                                <span class="timestamp">${timestamp}</span>
+                                <span class="error-message">${err.message.substring(0, 100)}${err.message.length > 100 ? '...' : ''}</span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+
+        // Set status
+        function setStatus(status) {
+            statusBadge.className = `status-badge status-${status.toLowerCase()}`;
+            statusBadge.textContent = status;
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            if (isRunning) return;
+            isRunning = true;
+            setStatus('RUNNING');
+            setButtonsDisabled(true);
+            addLog('info', 'Starting all tests...');
+
+            try {
+                await testSuite.runAllTests();
+                setStatus('COMPLETE');
+                addLog('info', 'All tests completed!');
+            } catch (error) {
+                setStatus('FAIL');
+                addLog('error', `Test suite failed: ${error.message}`);
+            } finally {
+                isRunning = false;
+                setButtonsDisabled(false);
+                updateResults();
+                updateErrorCatcher();
+            }
+        }
+
+        // Set buttons disabled state
+        function setButtonsDisabled(disabled) {
+            runAllBtn.disabled = disabled;
+            runChronosBtn.disabled = disabled;
+            runEchoBtn.disabled = disabled;
+            runIrisBtn.disabled = disabled;
+            runLipsyncBtn.disabled = disabled;
+        }
+
+        // Event listeners
+        runAllBtn.addEventListener('click', runAllTests);
+
+        runChronosBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            isRunning = true;
+            setStatus('RUNNING');
+            setButtonsDisabled(true);
+            addLog('info', 'Running CHRONOS tests...');
+
+            try {
+                await testSuite.init();
+                await testSuite.runChronosTests();
+                setStatus('COMPLETE');
+            } catch (error) {
+                setStatus('FAIL');
+                addLog('error', `CHRONOS tests failed: ${error.message}`);
+            } finally {
+                isRunning = false;
+                setButtonsDisabled(false);
+                updateResults();
+            }
+        });
+
+        runEchoBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            isRunning = true;
+            setStatus('RUNNING');
+            setButtonsDisabled(true);
+            addLog('info', 'Running ECHO tests...');
+
+            try {
+                await testSuite.init();
+                await testSuite.runEchoTests();
+                setStatus('COMPLETE');
+            } catch (error) {
+                setStatus('FAIL');
+                addLog('error', `ECHO tests failed: ${error.message}`);
+            } finally {
+                isRunning = false;
+                setButtonsDisabled(false);
+                updateResults();
+            }
+        });
+
+        runIrisBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            isRunning = true;
+            setStatus('RUNNING');
+            setButtonsDisabled(true);
+            addLog('info', 'Running IRIS tests...');
+
+            try {
+                await testSuite.init();
+                await testSuite.runIrisTests();
+                setStatus('COMPLETE');
+            } catch (error) {
+                setStatus('FAIL');
+                addLog('error', `IRIS tests failed: ${error.message}`);
+            } finally {
+                isRunning = false;
+                setButtonsDisabled(false);
+                updateResults();
+            }
+        });
+
+        runLipsyncBtn.addEventListener('click', async () => {
+            if (isRunning) return;
+            isRunning = true;
+            setStatus('RUNNING');
+            setButtonsDisabled(true);
+            addLog('info', 'Running LIPSYNC tests...');
+
+            try {
+                await testSuite.init();
+                await testSuite.runLipsyncTests();
+                setStatus('COMPLETE');
+            } catch (error) {
+                setStatus('FAIL');
+                addLog('error', `LIPSYNC tests failed: ${error.message}`);
+            } finally {
+                isRunning = false;
+                setButtonsDisabled(false);
+                updateResults();
+            }
+        });
+
+        exportResultsBtn.addEventListener('click', () => {
+            testSuite.exportResults();
+            addLog('info', 'Results exported!');
+        });
+
+        // Update error catcher periodically
+        setInterval(updateErrorCatcher, 1000);
+
+        // Initial setup
+        addLog('info', 'Test suite initialized. Ready to run tests.');
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addLog('info', 'Auto-starting tests in 2 seconds...');
+                setTimeout(() => {
+                    runAllTests();
+                }, 2000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

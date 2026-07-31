@@ -196,6 +196,6 @@ yarn-error.log*
 *.egg-info/
 
 # =============================================================================
-# Project History & Documentation
+# Project History (local only)
 # =============================================================================
 PROJECT_HISTORY.txt
