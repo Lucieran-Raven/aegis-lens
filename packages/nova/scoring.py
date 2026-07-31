@@ -36,8 +36,6 @@ class CandidateScore:
         )
 
 
-def calculate_overall_score(
-    skills: float, experience: float, cultural_fit: float
-) -> float:
+def calculate_overall_score(skills: float, experience: float, cultural_fit: float) -> float:
     """Calculate weighted overall score"""
     return (skills * 0.4) + (experience * 0.4) + (cultural_fit * 0.2)

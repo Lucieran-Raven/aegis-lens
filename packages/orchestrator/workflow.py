@@ -54,8 +54,4 @@ class Workflow:
     def get_ready_tasks(self) -> List[Task]:
         """Get tasks that are ready to execute"""
         completed = {t.id for t in self.tasks if t.status == TaskStatus.COMPLETED}
-        return [
-            t
-            for t in self.tasks
-            if t.status == TaskStatus.PENDING and t.can_execute(completed)
-        ]
+        return [t for t in self.tasks if t.status == TaskStatus.PENDING and t.can_execute(completed)]
