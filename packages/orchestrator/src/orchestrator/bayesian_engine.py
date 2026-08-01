@@ -108,9 +108,13 @@ class BayesianEngine:
             InvalidPriorError: If prior parameters are invalid
         """
         if alpha <= 0 or beta <= 0:
-            raise InvalidPriorError(f"Alpha and beta must be positive, got alpha={alpha}, beta={beta}")
+            raise InvalidPriorError(
+                f"Alpha and beta must be positive, got alpha={alpha}, beta={beta}"
+            )
         if not 0.0 <= base_reliability <= 1.0:
-            raise InvalidPriorError(f"Base reliability must be between 0 and 1, got {base_reliability}")
+            raise InvalidPriorError(
+                f"Base reliability must be between 0 and 1, got {base_reliability}"
+            )
 
         self.priors = PriorParameters(alpha, beta, base_reliability)
         self.logger.info(f"Updated priors: alpha={alpha}, beta={beta}")
@@ -157,9 +161,13 @@ class BayesianEngine:
 
             # Validate score and confidence
             if not 0.0 <= result.score <= 1.0:
-                raise InvalidAgentResultError(f"Invalid score {result.score} for agent {result.agent_id}")
+                raise InvalidAgentResultError(
+                    f"Invalid score {result.score} for agent {result.agent_id}"
+                )
             if not 0.0 <= result.confidence <= 1.0:
-                raise InvalidAgentResultError(f"Invalid confidence {result.confidence} for agent {result.agent_id}")
+                raise InvalidAgentResultError(
+                    f"Invalid confidence {result.confidence} for agent {result.agent_id}"
+                )
 
             weight = self._get_agent_weight(result.agent_id)
             contribution = result.score * weight * result.confidence

@@ -193,9 +193,7 @@ class TestVerdictEndpoint:
 class TestRecommendationEndpoint:
     """Tests for recommendation generation endpoint"""
 
-    def test_generate_recommendations_success(
-        self, client, sample_agent_results
-    ):
+    def test_generate_recommendations_success(self, client, sample_agent_results):
         """Test successful recommendation generation"""
         response = client.post(
             "/recommendations",
@@ -501,6 +499,6 @@ class TestEndToEndFlow:
         # Verify all components present
         assert "verdict" in analysis_data
         assert "recommendations" in analysis_data
-        assert analysis_data["verdict"]["status"] == analysis_data["recommendations"][
-            "verdict_status"
-        ]
+        assert (
+            analysis_data["verdict"]["status"] == analysis_data["recommendations"]["verdict_status"]
+        )

@@ -214,9 +214,7 @@ class TestRecommendationEnginePerformance:
         from src.orchestrator.recommendation import RecommendationPriority
 
         start_time = time.time()
-        filtered = rec_engine.get_priority_recommendations(
-            report, RecommendationPriority.HIGH
-        )
+        filtered = rec_engine.get_priority_recommendations(report, RecommendationPriority.HIGH)
         elapsed = time.time() - start_time
 
         assert elapsed < 0.1  # Should complete in under 0.1 seconds

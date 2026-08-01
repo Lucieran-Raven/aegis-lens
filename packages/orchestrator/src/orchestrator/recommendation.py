@@ -313,7 +313,7 @@ class RecommendationEngine:
                     type=RecommendationType.INSIGHT,
                     priority=RecommendationPriority.MEDIUM,
                     title="Anomalous Agent Result",
-                description=f"Agent {verdict.anomaly.get('agent_id')} produced an outlier result.",
+                    description=f"Agent {verdict.anomaly.get('agent_id')} produced an outlier result.",
                     context=verdict.anomaly,
                     suggested_questions=[],
                 )
@@ -378,9 +378,7 @@ class RecommendationEngine:
                             "score": evidence.score,
                             "details": evidence.details,
                         },
-                        suggested_questions=self._get_agent_specific_questions(
-                            evidence.agent_id
-                        ),
+                        suggested_questions=self._get_agent_specific_questions(evidence.agent_id),
                     )
                 )
 
@@ -426,9 +424,7 @@ class RecommendationEngine:
         critical_count = sum(
             1 for r in recommendations if r.priority == RecommendationPriority.CRITICAL
         )
-        high_count = sum(
-            1 for r in recommendations if r.priority == RecommendationPriority.HIGH
-        )
+        high_count = sum(1 for r in recommendations if r.priority == RecommendationPriority.HIGH)
 
         summary_parts = [
             f"Verdict status is {verdict.status.value} with trust score of {verdict.trust_score:.2f}.",
@@ -436,9 +432,13 @@ class RecommendationEngine:
         ]
 
         if critical_count > 0:
-            summary_parts.append(f"{critical_count} critical recommendation(s) require immediate attention.")
+            summary_parts.append(
+                f"{critical_count} critical recommendation(s) require immediate attention."
+            )
         if high_count > 0:
-            summary_parts.append(f"{high_count} high priority recommendation(s) should be reviewed.")
+            summary_parts.append(
+                f"{high_count} high priority recommendation(s) should be reviewed."
+            )
 
         return " ".join(summary_parts)
 
@@ -498,11 +498,7 @@ class RecommendationEngine:
         }
 
         min_level = priority_order[min_priority]
-        filtered = [
-            r
-            for r in report.recommendations
-            if priority_order[r.priority] <= min_level
-        ]
+        filtered = [r for r in report.recommendations if priority_order[r.priority] <= min_level]
 
         # Sort by priority
         filtered.sort(key=lambda r: priority_order[r.priority])

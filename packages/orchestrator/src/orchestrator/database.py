@@ -95,7 +95,8 @@ class PostgreSQLManager:
         """Initialize database tables"""
         async with self.get_connection() as conn:
             # Sessions table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS sessions (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     session_id VARCHAR(255) UNIQUE NOT NULL,
@@ -105,10 +106,12 @@ class PostgreSQLManager:
                     ended_at TIMESTAMP WITH TIME ZONE,
                     status VARCHAR(50) DEFAULT 'active'
                 )
-            """)
+            """
+            )
 
             # Verdicts table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS verdicts (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     session_id VARCHAR(255) NOT NULL REFERENCES sessions(session_id),
@@ -122,10 +125,12 @@ class PostgreSQLManager:
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                     INDEX idx_session_id (session_id)
                 )
-            """)
+            """
+            )
 
             # Recommendations table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS recommendations (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     session_id VARCHAR(255) NOT NULL REFERENCES sessions(session_id),
@@ -138,10 +143,12 @@ class PostgreSQLManager:
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                     INDEX idx_session_id (session_id)
                 )
-            """)
+            """
+            )
 
             # Trust history table
-            await conn.execute("""
+            await conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS trust_history (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     session_id VARCHAR(255) NOT NULL REFERENCES sessions(session_id),
@@ -150,7 +157,8 @@ class PostgreSQLManager:
                     INDEX idx_session_id (session_id),
                     INDEX idx_recorded_at (recorded_at)
                 )
-            """)
+            """
+            )
 
             self.logger.info("Database tables initialized")
 
@@ -281,9 +289,7 @@ class PostgreSQLManager:
                 trust_score,
             )
 
-    async def get_session_verdicts(
-        self, session_id: str, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    async def get_session_verdicts(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Get verdicts for a session.
 
@@ -307,9 +313,7 @@ class PostgreSQLManager:
             )
             return [dict(row) for row in rows]
 
-    async def get_trust_history(
-        self, session_id: str, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    async def get_trust_history(self, session_id: str, limit: int = 100) -> List[Dict[str, Any]]:
         """
         Get trust score history for a session.
 
@@ -391,9 +395,7 @@ class Neo4jManager:
     async def connect(self) -> None:
         """Establish Neo4j connection"""
         try:
-            self._driver = AsyncGraphDatabase.driver(
-                self.uri, auth=(self.user, self.password)
-            )
+            self._driver = AsyncGraphDatabase.driver(self.uri, auth=(self.user, self.password))
 
             # Test connection
             async with self._driver.session() as session:
@@ -575,9 +577,7 @@ class Neo4jManager:
             async for record in result:
                 session_data = dict(record["s"])
                 verdict_data = dict(record["v"]) if record["v"] else None
-                sessions.append(
-                    {"session": session_data, "verdict": verdict_data}
-                )
+                sessions.append({"session": session_data, "verdict": verdict_data})
             return sessions
 
     async def get_interviewer_sessions(
@@ -610,14 +610,10 @@ class Neo4jManager:
             async for record in result:
                 session_data = dict(record["s"])
                 verdict_data = dict(record["v"]) if record["v"] else None
-                sessions.append(
-                    {"session": session_data, "verdict": verdict_data}
-                )
+                sessions.append({"session": session_data, "verdict": verdict_data})
             return sessions
 
-    async def get_session_trust_scores(
-        self, session_id: str
-    ) -> List[Dict[str, Any]]:
+    async def get_session_trust_scores(self, session_id: str) -> List[Dict[str, Any]]:
         """
         Get trust scores for a session.
 

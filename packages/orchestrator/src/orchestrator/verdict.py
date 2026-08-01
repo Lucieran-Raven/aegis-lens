@@ -111,9 +111,7 @@ class VerdictGenerator:
         evidence = self._aggregate_evidence(results, metadata)
 
         # Generate reasoning
-        reasoning = self._generate_reasoning(
-            trust_score, status, evidence, anomaly, trend
-        )
+        reasoning = self._generate_reasoning(trust_score, status, evidence, anomaly, trend)
 
         # Build verdict
         verdict = Verdict(
@@ -309,9 +307,7 @@ class VerdictGenerator:
                 f"{positive_count} agent(s) provided positive evidence of authenticity."
             )
         if negative_count > 0:
-            reasoning_parts.append(
-                f"{negative_count} agent(s) indicated potential manipulation."
-            )
+            reasoning_parts.append(f"{negative_count} agent(s) indicated potential manipulation.")
         if neutral_count > 0:
             reasoning_parts.append(f"{neutral_count} agent(s) provided neutral results.")
 

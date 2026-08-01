@@ -81,18 +81,14 @@ class AgentResultRequest(BaseModel):
 class VerdictRequest(BaseModel):
     """Request model for verdict generation"""
 
-    agent_results: List[AgentResultRequest] = Field(
-        ..., description="List of agent results"
-    )
+    agent_results: List[AgentResultRequest] = Field(..., description="List of agent results")
     history: Optional[List[float]] = Field(
         None, description="Historical trust scores for trend analysis"
     )
     priors: Optional[PriorParameters] = Field(
         None, description="Optional prior parameters for Bayesian engine"
     )
-    weights: Optional[AgentWeights] = Field(
-        None, description="Optional agent weights for fusion"
-    )
+    weights: Optional[AgentWeights] = Field(None, description="Optional agent weights for fusion")
 
 
 class VerdictResponse(BaseModel):
@@ -275,9 +271,7 @@ async def generate_verdict(request: VerdictRequest):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@app.post(
-    "/recommendations", response_model=RecommendationResponse, tags=["Recommendations"]
-)
+@app.post("/recommendations", response_model=RecommendationResponse, tags=["Recommendations"])
 async def generate_recommendations(request: VerdictRequest):
     """
     Generate recommendations based on agent results.

@@ -170,9 +170,7 @@ class OrchestratorRedisManager:
             self.logger.error(f"Failed to cache recommendation: {e}")
             return False
 
-    async def get_cached_recommendation(
-        self, session_id: str
-    ) -> Optional[Dict[str, Any]]:
+    async def get_cached_recommendation(self, session_id: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve cached recommendation for a session.
 
@@ -219,9 +217,7 @@ class OrchestratorRedisManager:
             self.logger.error(f"Failed to cache agent results: {e}")
             return False
 
-    async def get_cached_agent_results(
-        self, session_id: str
-    ) -> Optional[List[Dict[str, Any]]]:
+    async def get_cached_agent_results(self, session_id: str) -> Optional[List[Dict[str, Any]]]:
         """
         Retrieve cached agent results for a session.
 
@@ -261,9 +257,7 @@ class OrchestratorRedisManager:
         try:
             key = f"trust_history:{session_id}"
             ts = timestamp or datetime.now(timezone.utc)
-            value = json.dumps(
-                {"score": trust_score, "timestamp": ts.isoformat()}
-            )
+            value = json.dumps({"score": trust_score, "timestamp": ts.isoformat()})
             await self.client.lpush(key, value)
             # Keep last 100 entries
             await self.client.ltrim(key, 0, 99)
@@ -275,9 +269,7 @@ class OrchestratorRedisManager:
             self.logger.error(f"Failed to store trust history: {e}")
             return False
 
-    async def get_trust_history(
-        self, session_id: str, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    async def get_trust_history(self, session_id: str, limit: int = 10) -> List[Dict[str, Any]]:
         """
         Retrieve trust score history for a session.
 
@@ -296,9 +288,7 @@ class OrchestratorRedisManager:
             self.logger.error(f"Failed to get trust history: {e}")
             return []
 
-    async def publish_verdict_event(
-        self, session_id: str, verdict: Dict[str, Any]
-    ) -> bool:
+    async def publish_verdict_event(self, session_id: str, verdict: Dict[str, Any]) -> bool:
         """
         Publish verdict event to pub/sub channel.
 
@@ -311,9 +301,7 @@ class OrchestratorRedisManager:
         """
         try:
             channel = f"verdict:{session_id}"
-            message = json.dumps(
-                {"type": "verdict", "session_id": session_id, "data": verdict}
-            )
+            message = json.dumps({"type": "verdict", "session_id": session_id, "data": verdict})
             await self.client.publish(channel, message)
             self.logger.info(f"Published verdict event for session {session_id}")
             return True
@@ -340,9 +328,7 @@ class OrchestratorRedisManager:
                 {"type": "recommendation", "session_id": session_id, "data": recommendation}
             )
             await self.client.publish(channel, message)
-            self.logger.info(
-                f"Published recommendation event for session {session_id}"
-            )
+            self.logger.info(f"Published recommendation event for session {session_id}")
             return True
         except Exception as e:
             self.logger.error(f"Failed to publish recommendation event: {e}")
