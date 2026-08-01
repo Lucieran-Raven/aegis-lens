@@ -62,7 +62,7 @@ jobs:
       - name: Check formatting with black
         run: |
           cd packages/${{ matrix.package }}
-          black --check .
+          black --check --line-length 100 --target-version py311 .
       
       - name: Lint with flake8
         run: |
