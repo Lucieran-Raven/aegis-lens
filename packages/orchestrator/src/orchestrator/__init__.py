@@ -10,6 +10,19 @@ from src.orchestrator.bayesian_engine import (
     PriorParameters,
     AgentWeights,
 )
+from src.orchestrator.verdict import (
+    VerdictGenerator,
+    Verdict,
+    VerdictStatus,
+    VerdictEvidence,
+)
+from src.orchestrator.recommendation import (
+    RecommendationEngine,
+    Recommendation,
+    RecommendationReport,
+    RecommendationType,
+    RecommendationPriority,
+)
 
 __all__ = [
     "Workflow",
@@ -20,4 +33,13 @@ __all__ = [
     "AgentStatus",
     "PriorParameters",
     "AgentWeights",
+    "VerdictGenerator",
+    "Verdict",
+    "VerdictStatus",
+    "VerdictEvidence",
+    "RecommendationEngine",
+    "Recommendation",
+    "RecommendationReport",
+    "RecommendationType",
+    "RecommendationPriority",
 ]

@@ -13,6 +13,24 @@ from enum import Enum
 import logging
 
 
+class BayesianEngineError(Exception):
+    """Base exception for Bayesian Engine errors"""
+
+    pass
+
+
+class InvalidAgentResultError(BayesianEngineError):
+    """Exception for invalid agent results"""
+
+    pass
+
+
+class InvalidPriorError(BayesianEngineError):
+    """Exception for invalid prior parameters"""
+
+    pass
+
+
 class AgentStatus(Enum):
     """Agent status enum matching base agent status"""
 
@@ -85,7 +103,15 @@ class BayesianEngine:
             alpha: Prior strength for positive evidence
             beta: Prior strength for negative evidence
             base_reliability: Base reliability score
+
+        Raises:
+            InvalidPriorError: If prior parameters are invalid
         """
+        if alpha <= 0 or beta <= 0:
+            raise InvalidPriorError(f"Alpha and beta must be positive, got alpha={alpha}, beta={beta}")
+        if not 0.0 <= base_reliability <= 1.0:
+            raise InvalidPriorError(f"Base reliability must be between 0 and 1, got {base_reliability}")
+
         self.priors = PriorParameters(alpha, beta, base_reliability)
         self.logger.info(f"Updated priors: alpha={alpha}, beta={beta}")
 
@@ -110,6 +136,9 @@ class BayesianEngine:
 
         Returns:
             Tuple of (weighted_score, individual_contributions)
+
+        Raises:
+            InvalidAgentResultError: If agent results are invalid
         """
         if not results:
             return 0.5, {}
@@ -119,8 +148,18 @@ class BayesianEngine:
         total_weight = 0.0
 
         for result in results:
+            # Validate result
+            if not isinstance(result, AgentResult):
+                raise InvalidAgentResultError(f"Invalid agent result type: {type(result)}")
+
             if result.status != AgentStatus.COMPLETED:
                 continue
+
+            # Validate score and confidence
+            if not 0.0 <= result.score <= 1.0:
+                raise InvalidAgentResultError(f"Invalid score {result.score} for agent {result.agent_id}")
+            if not 0.0 <= result.confidence <= 1.0:
+                raise InvalidAgentResultError(f"Invalid confidence {result.confidence} for agent {result.agent_id}")
 
             weight = self._get_agent_weight(result.agent_id)
             contribution = result.score * weight * result.confidence

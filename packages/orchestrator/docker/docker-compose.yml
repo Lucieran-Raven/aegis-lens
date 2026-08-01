@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  orchestrator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: aegis-orchestrator
+    ports:
+      - "8001:8001"
+    environment:
+      - LOG_LEVEL=INFO
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=aegis
+      - POSTGRES_USER=aegis_user
+      - POSTGRES_PASSWORD=aegis_password
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=neo4j_password
+    depends_on:
+      - redis
+      - postgres
+      - neo4j
+    networks:
+      - aegis-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    container_name: aegis-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - aegis-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: aegis-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=aegis
+      - POSTGRES_USER=aegis_user
+      - POSTGRES_PASSWORD=aegis_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - aegis-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis_user -d aegis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5.15-community
+    container_name: aegis-neo4j
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/neo4j_password
+      - NEO4J_dbms_memory_heap_initial__size=512m
+      - NEO4J_dbms_memory_heap_max__size=512m
+    volumes:
+      - neo4j-data:/data
+    networks:
+      - aegis-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7474 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  aegis-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  postgres-data:
+  neo4j-data:
