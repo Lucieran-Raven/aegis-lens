@@ -59,7 +59,8 @@ jobs:
       
       - name: Check formatting with black
         run: |
-          black --check packages/${{ matrix.package }}
+          cd packages/${{ matrix.package }}
+          black --check .
       
       - name: Lint with flake8
         run: |
