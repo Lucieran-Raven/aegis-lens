@@ -32,6 +32,7 @@ def iris_agent():
         yield agent
         # Cleanup
         from src.api import agent_registry
+
         if "iris_integration" in agent_registry:
             del agent_registry["iris_integration"]
 

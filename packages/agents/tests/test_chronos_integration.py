@@ -32,6 +32,7 @@ def chronos_agent():
         yield agent
         # Cleanup
         from src.api import agent_registry
+
         if "chronos_integration" in agent_registry:
             del agent_registry["chronos_integration"]
 

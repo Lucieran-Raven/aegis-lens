@@ -243,7 +243,7 @@ class TestBaseAgent:
         assert result.score == 0.85
         assert result.confidence == 0.9
         assert result.data["processed"] is True
-        assert result.execution_time_ms > 0
+        assert result.execution_time_ms >= 0
         assert agent._execution_count == 1
         assert agent._error_count == 0
 

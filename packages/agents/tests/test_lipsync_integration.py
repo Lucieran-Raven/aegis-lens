@@ -32,6 +32,7 @@ def lipsync_agent():
         yield agent
         # Cleanup
         from src.api import agent_registry
+
         if "lipsync_integration" in agent_registry:
             del agent_registry["lipsync_integration"]
 

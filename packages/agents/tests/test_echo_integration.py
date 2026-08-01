@@ -32,6 +32,7 @@ def echo_agent():
         yield agent
         # Cleanup
         from src.api import agent_registry
+
         if "echo_integration" in agent_registry:
             del agent_registry["echo_integration"]
 

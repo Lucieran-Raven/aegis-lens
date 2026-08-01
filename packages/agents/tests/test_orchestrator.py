@@ -84,11 +84,11 @@ class TestAgentRegistration:
         """Test registering an agent"""
         config = OrchestratorConfig(orchestrator_id="test_orch")
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent = Mock(spec=BaseAgent)
         mock_agent.config = Mock(spec=AgentConfig)
         mock_agent.config.agent_id = "agent1"
-        
+
         orchestrator.register_agent(mock_agent)
         assert "agent1" in orchestrator.agents
         assert orchestrator.agents["agent1"] == mock_agent
@@ -97,14 +97,14 @@ class TestAgentRegistration:
         """Test unregistering an agent"""
         config = OrchestratorConfig(orchestrator_id="test_orch")
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent = Mock(spec=BaseAgent)
         mock_agent.config = Mock(spec=AgentConfig)
         mock_agent.config.agent_id = "agent1"
-        
+
         orchestrator.register_agent(mock_agent)
         assert "agent1" in orchestrator.agents
-        
+
         orchestrator.unregister_agent("agent1")
         assert "agent1" not in orchestrator.agents
 
@@ -112,7 +112,7 @@ class TestAgentRegistration:
         """Test unregistering a non-existent agent"""
         config = OrchestratorConfig(orchestrator_id="test_orch")
         orchestrator = AgentOrchestrator(config)
-        
+
         # Should not raise an error
         orchestrator.unregister_agent("nonexistent")
 
@@ -127,18 +127,18 @@ class TestAgentValidation:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         assert orchestrator.validate_agents() is True
 
     def test_validate_agents_missing_required(self):
@@ -148,13 +148,13 @@ class TestAgentValidation:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        
+
         orchestrator.register_agent(mock_agent1)
-        
+
         assert orchestrator.validate_agents() is False
 
 
@@ -169,36 +169,40 @@ class TestSequentialExecution:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.COMPLETED,
-            score=0.8,
-            confidence=0.9,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.COMPLETED,
+                score=0.8,
+                confidence=0.9,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.7,
-            confidence=0.85,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.7,
+                confidence=0.85,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         assert result.status == AgentStatus.COMPLETED
         assert 0.0 <= result.overall_score <= 1.0
         assert 0.0 <= result.overall_confidence <= 1.0
@@ -212,29 +216,31 @@ class TestSequentialExecution:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
         mock_agent1.execute = Mock(side_effect=Exception("Agent failed"))
-        
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.7,
-            confidence=0.85,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.7,
+                confidence=0.85,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         # Should still execute agent2 even if agent1 fails
         assert len(result.agent_results) == 1
         assert "agent2" in result.agent_results
@@ -251,36 +257,40 @@ class TestParallelExecution:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.COMPLETED,
-            score=0.8,
-            confidence=0.9,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.COMPLETED,
+                score=0.8,
+                confidence=0.9,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.7,
-            confidence=0.85,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.7,
+                confidence=0.85,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         assert result.status == AgentStatus.COMPLETED
         assert len(result.agent_results) == 2
 
@@ -296,52 +306,58 @@ class TestPriorityBasedExecution:
             required_agents=["agent1", "agent2", "agent3"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
         mock_agent1.config.priority = "high"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.COMPLETED,
-            score=0.8,
-            confidence=0.9,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.COMPLETED,
+                score=0.8,
+                confidence=0.9,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
         mock_agent2.config.priority = "medium"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.7,
-            confidence=0.85,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.7,
+                confidence=0.85,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent3 = Mock(spec=BaseAgent)
         mock_agent3.config = Mock(spec=AgentConfig)
         mock_agent3.config.agent_id = "agent3"
         mock_agent3.config.priority = "low"
-        mock_agent3.execute = Mock(return_value=AgentResult(
-            agent_id="agent3",
-            status=AgentStatus.COMPLETED,
-            score=0.6,
-            confidence=0.8,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent3.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent3",
+                status=AgentStatus.COMPLETED,
+                score=0.6,
+                confidence=0.8,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
         orchestrator.register_agent(mock_agent3)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         assert result.status == AgentStatus.COMPLETED
         assert len(result.agent_results) == 3
 
@@ -357,36 +373,40 @@ class TestResultAggregation:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.COMPLETED,
-            score=0.8,
-            confidence=0.9,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.COMPLETED,
+                score=0.8,
+                confidence=0.9,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.6,
-            confidence=0.5,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.6,
+                confidence=0.5,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         # Weighted average: (0.8*0.9 + 0.6*0.5) / (0.9 + 0.5) = (0.72 + 0.3) / 1.4 = 0.728
         assert abs(result.overall_score - 0.728) < 0.01
 
@@ -398,36 +418,40 @@ class TestResultAggregation:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.COMPLETED,
-            score=0.8,
-            confidence=0.9,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.COMPLETED,
+                score=0.8,
+                confidence=0.9,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.7,
-            confidence=0.85,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.7,
+                confidence=0.85,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         assert result.aggregated_data["method"] == "majority_vote"
 
     def test_aggregate_min(self):
@@ -438,36 +462,40 @@ class TestResultAggregation:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.COMPLETED,
-            score=0.8,
-            confidence=0.9,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.COMPLETED,
+                score=0.8,
+                confidence=0.9,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.6,
-            confidence=0.5,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.6,
+                confidence=0.5,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         assert result.overall_score == 0.6
         assert result.overall_confidence == 0.5
 
@@ -479,36 +507,40 @@ class TestResultAggregation:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.COMPLETED,
-            score=0.8,
-            confidence=0.9,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.COMPLETED,
+                score=0.8,
+                confidence=0.9,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.6,
-            confidence=0.5,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.6,
+                confidence=0.5,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         assert result.overall_score == 0.8
         assert result.overall_confidence == 0.9
 
@@ -523,36 +555,40 @@ class TestOverallStatusDetermination:
             required_agents=["agent1", "agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.COMPLETED,
-            score=0.8,
-            confidence=0.9,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.COMPLETED,
+                score=0.8,
+                confidence=0.9,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.7,
-            confidence=0.85,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.7,
+                confidence=0.85,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         assert result.status == AgentStatus.COMPLETED
 
     def test_determine_status_required_fails(self):
@@ -563,36 +599,40 @@ class TestOverallStatusDetermination:
             optional_agents=["agent2"],
         )
         orchestrator = AgentOrchestrator(config)
-        
+
         mock_agent1 = Mock(spec=BaseAgent)
         mock_agent1.config = Mock(spec=AgentConfig)
         mock_agent1.config.agent_id = "agent1"
-        mock_agent1.execute = Mock(return_value=AgentResult(
-            agent_id="agent1",
-            status=AgentStatus.ERROR,
-            score=0.0,
-            confidence=0.0,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent1.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent1",
+                status=AgentStatus.ERROR,
+                score=0.0,
+                confidence=0.0,
+                data={},
+                metadata={},
+            )
+        )
+
         mock_agent2 = Mock(spec=BaseAgent)
         mock_agent2.config = Mock(spec=AgentConfig)
         mock_agent2.config.agent_id = "agent2"
-        mock_agent2.execute = Mock(return_value=AgentResult(
-            agent_id="agent2",
-            status=AgentStatus.COMPLETED,
-            score=0.7,
-            confidence=0.85,
-            data={},
-            metadata={},
-        ))
-        
+        mock_agent2.execute = Mock(
+            return_value=AgentResult(
+                agent_id="agent2",
+                status=AgentStatus.COMPLETED,
+                score=0.7,
+                confidence=0.85,
+                data={},
+                metadata={},
+            )
+        )
+
         orchestrator.register_agent(mock_agent1)
         orchestrator.register_agent(mock_agent2)
-        
+
         result = orchestrator.execute({"test": "data"})
-        
+
         assert result.status == AgentStatus.ERROR
 
 
