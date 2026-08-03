@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Join } from '../../routes/Join';
 
@@ -32,8 +32,8 @@ describe('Integration Tests', () => {
     expect(nameInput).toBeInTheDocument();
     expect(sessionIdInput).toBeInTheDocument();
 
-    nameInput?.setAttribute('value', 'John Doe');
-    sessionIdInput?.setAttribute('value', 'test-session-123');
+    fireEvent.change(nameInput, { target: { value: 'John Doe' } });
+    fireEvent.change(sessionIdInput, { target: { value: 'test-session-123' } });
 
     expect(nameInput).toHaveValue('John Doe');
     expect(sessionIdInput).toHaveValue('test-session-123');
@@ -60,8 +60,8 @@ describe('Integration Tests', () => {
     const nameInput = screen.getByLabelText(/your name/i);
     const sessionIdInput = screen.getByLabelText(/session id/i);
 
-    nameInput?.setAttribute('value', 'John Doe');
-    sessionIdInput?.setAttribute('value', 'test-session-123');
+    fireEvent.change(nameInput, { target: { value: 'John Doe' } });
+    fireEvent.change(sessionIdInput, { target: { value: 'test-session-123' } });
 
     // Simulate permission grant
     const testButton = screen.getByRole('button', { name: /test camera/i });
