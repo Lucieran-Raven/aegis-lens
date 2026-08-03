@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { Join } from '../../routes/Join';
 
 describe('Integration Tests', () => {
@@ -8,14 +9,22 @@ describe('Integration Tests', () => {
   });
 
   it('renders the join page', () => {
-    render(<Join />);
+    render(
+      <MemoryRouter>
+        <Join />
+      </MemoryRouter>
+    );
 
     expect(screen.getByText('Aegis Lens')).toBeInTheDocument();
     expect(screen.getByText('Candidate Interview Portal')).toBeInTheDocument();
   });
 
   it('allows user to fill in name and session ID', async () => {
-    render(<Join />);
+    render(
+      <MemoryRouter>
+        <Join />
+      </MemoryRouter>
+    );
 
     const nameInput = screen.getByLabelText(/your name/i);
     const sessionIdInput = screen.getByLabelText(/session id/i);
@@ -31,14 +40,22 @@ describe('Integration Tests', () => {
   });
 
   it('disables join button when required fields are empty', () => {
-    render(<Join />);
+    render(
+      <MemoryRouter>
+        <Join />
+      </MemoryRouter>
+    );
 
     const joinButton = screen.getByRole('button', { name: /join session/i });
     expect(joinButton).toBeDisabled();
   });
 
   it('enables join button when all required fields are filled and permissions granted', async () => {
-    render(<Join />);
+    render(
+      <MemoryRouter>
+        <Join />
+      </MemoryRouter>
+    );
 
     const nameInput = screen.getByLabelText(/your name/i);
     const sessionIdInput = screen.getByLabelText(/session id/i);
