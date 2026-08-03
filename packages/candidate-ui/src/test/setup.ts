@@ -23,3 +23,7 @@ Object.defineProperty(global.navigator, 'mediaDevices', {
   },
   writable: true,
 });
+
+// Mock HTMLVideoElement.play() method
+HTMLVideoElement.prototype.play = vi.fn(() => Promise.resolve());
+HTMLVideoElement.prototype.pause = vi.fn();
