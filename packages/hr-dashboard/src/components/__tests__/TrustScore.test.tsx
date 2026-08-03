@@ -37,34 +37,66 @@ describe('TrustScore', () => {
     expect(screen.getByText('High Trust')).toBeInTheDocument();
   });
 
-  it('displays correct trust level for different scores', () => {
-    const testCases = [
-      { score: 90, level: 'High Trust' },
-      { score: 70, level: 'Medium Trust' },
-      { score: 40, level: 'Low Trust' },
-    ];
+  it('displays High Trust for score >= 80', () => {
+    const mockCandidate = {
+      id: '1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      role: 'Developer',
+      status: 'interviewing' as const,
+      trustScore: 90,
+      sessionId: 'session-123',
+    };
 
-    testCases.forEach(({ score, level }) => {
-      const mockCandidate = {
-        id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        role: 'Developer',
-        status: 'interviewing' as const,
-        trustScore: score,
-        sessionId: 'session-123',
-      };
+    vi.mocked(useDashboardStore).mockReturnValue({
+      selectedCandidate: mockCandidate,
+    } as any);
 
-      vi.mocked(useDashboardStore).mockReturnValue({
-        selectedCandidate: mockCandidate,
-      } as any);
+    render(<TrustScore />);
+    
+    expect(screen.getByText('90%')).toBeInTheDocument();
+    expect(screen.getByText('High Trust')).toBeInTheDocument();
+  });
 
-      const { unmount } = render(<TrustScore />);
-      
-      expect(screen.getByText(`${score}%`)).toBeInTheDocument();
-      expect(screen.getByText(level)).toBeInTheDocument();
-      
-      unmount();
-    });
+  it('displays Medium Trust for score >= 60', () => {
+    const mockCandidate = {
+      id: '1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      role: 'Developer',
+      status: 'interviewing' as const,
+      trustScore: 70,
+      sessionId: 'session-123',
+    };
+
+    vi.mocked(useDashboardStore).mockReturnValue({
+      selectedCandidate: mockCandidate,
+    } as any);
+
+    render(<TrustScore />);
+    
+    expect(screen.getByText('70%')).toBeInTheDocument();
+    expect(screen.getByText('Medium Trust')).toBeInTheDocument();
+  });
+
+  it('displays Low Trust for score < 60', () => {
+    const mockCandidate = {
+      id: '1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      role: 'Developer',
+      status: 'interviewing' as const,
+      trustScore: 40,
+      sessionId: 'session-123',
+    };
+
+    vi.mocked(useDashboardStore).mockReturnValue({
+      selectedCandidate: mockCandidate,
+    } as any);
+
+    render(<TrustScore />);
+    
+    expect(screen.getByText('40%')).toBeInTheDocument();
+    expect(screen.getByText('Low Trust')).toBeInTheDocument();
   });
 });
