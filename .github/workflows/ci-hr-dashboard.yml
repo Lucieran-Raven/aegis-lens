@@ -7,12 +7,14 @@ on:
       - develop
     paths:
       - 'packages/hr-dashboard/**'
+      - '.github/workflows/ci-hr-dashboard.yml'
   pull_request:
     branches:
       - main
       - develop
     paths:
       - 'packages/hr-dashboard/**'
+      - '.github/workflows/ci-hr-dashboard.yml'
 
 jobs:
   test:
