@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { App } from '../../App';
 
 describe('Integration Tests', () => {
@@ -10,9 +10,9 @@ describe('Integration Tests', () => {
 
   it('renders the app and navigates to join page', () => {
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={['/']}>
         <App />
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     expect(screen.getByText('Aegis Lens')).toBeInTheDocument();
@@ -21,9 +21,9 @@ describe('Integration Tests', () => {
 
   it('allows user to fill in name and session ID', async () => {
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={['/']}>
         <App />
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     const nameInput = screen.getByLabelText(/your name/i);
@@ -41,9 +41,9 @@ describe('Integration Tests', () => {
 
   it('disables join button when required fields are empty', () => {
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={['/']}>
         <App />
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     const joinButton = screen.getByRole('button', { name: /join session/i });
@@ -52,9 +52,9 @@ describe('Integration Tests', () => {
 
   it('enables join button when all required fields are filled and permissions granted', async () => {
     render(
-      <BrowserRouter>
+      <MemoryRouter initialEntries={['/']}>
         <App />
-      </BrowserRouter>
+      </MemoryRouter>
     );
 
     const nameInput = screen.getByLabelText(/your name/i);
