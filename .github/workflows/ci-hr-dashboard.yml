@@ -28,7 +28,6 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: packages/hr-dashboard/package-lock.json
 
       - name: Install dependencies
         working-directory: packages/hr-dashboard
@@ -64,7 +63,6 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: packages/hr-dashboard/package-lock.json
 
       - name: Install dependencies
         working-directory: packages/hr-dashboard
