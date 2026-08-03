@@ -9,8 +9,8 @@ interface WebSocketMessage {
 
 export function useWebSocket(url: string) {
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<number>();
+  const heartbeatIntervalRef = useRef<number>();
   const messageQueueRef = useRef<any[]>([]);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 10;
