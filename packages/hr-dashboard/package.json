@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 50",
     "type-check": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "test:unit": "vitest run src/components/__tests__ src/store/__tests__",
+    "test:integration": "vitest run src/__tests__"
   },
   "dependencies": {
     "react": "^18.2.0",
