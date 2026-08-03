@@ -24,16 +24,16 @@ describe('VideoFeed', () => {
 
   it('renders video element when stream is provided', () => {
     const mockStream = new MediaStream();
-    render(<VideoFeed stream={mockStream} />);
-    const video = screen.getByRole('video');
+    const { container } = render(<VideoFeed stream={mockStream} />);
+    const video = container.querySelector('video');
     expect(video).toBeInTheDocument();
     expect(video).toHaveProperty('muted', false);
   });
 
   it('mutes video when muted prop is true', () => {
     const mockStream = new MediaStream();
-    render(<VideoFeed stream={mockStream} muted={true} />);
-    const video = screen.getByRole('video');
+    const { container } = render(<VideoFeed stream={mockStream} muted={true} />);
+    const video = container.querySelector('video');
     expect(video).toHaveProperty('muted', true);
   });
 });
