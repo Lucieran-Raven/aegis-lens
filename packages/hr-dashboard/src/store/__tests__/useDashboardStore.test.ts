@@ -157,9 +157,9 @@ describe('useDashboardStore', () => {
   });
 
   it('updates connection status', () => {
-    useDashboardStore.getState().setConnectionStatus('connected');
+    useDashboardStore.getState().setConnected(true);
     
     const state = useDashboardStore.getState();
-    expect(state.connectionStatus).toBe('connected');
+    expect(state.isConnected).toBe(true);
   });
 });
