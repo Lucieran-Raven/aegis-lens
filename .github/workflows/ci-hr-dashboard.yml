@@ -1,0 +1,139 @@
+name: CI/CD - HR Dashboard
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'packages/hr-dashboard/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'packages/hr-dashboard/**'
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: packages/hr-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: packages/hr-dashboard
+        run: npm ci
+
+      - name: Run linter
+        working-directory: packages/hr-dashboard
+        run: npm run lint
+
+      - name: Run type check
+        working-directory: packages/hr-dashboard
+        run: npm run type-check
+
+      - name: Run unit tests
+        working-directory: packages/hr-dashboard
+        run: npm run test:unit
+
+      - name: Run integration tests
+        working-directory: packages/hr-dashboard
+        run: npm run test:integration
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: packages/hr-dashboard/package-lock.json
+
+      - name: Install dependencies
+        working-directory: packages/hr-dashboard
+        run: npm ci
+
+      - name: Build application
+        working-directory: packages/hr-dashboard
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hr-dashboard-build
+          path: packages/hr-dashboard/dist
+          retention-days: 7
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: aegis-lens/hr-dashboard
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: packages/hr-dashboard
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          echo "Deploying HR Dashboard to production..."
+          # Add deployment commands here
+          # Example: kubectl apply -f k8s/hr-dashboard.yaml
