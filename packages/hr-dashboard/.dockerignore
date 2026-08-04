@@ -35,7 +35,6 @@ Thumbs.db
 # Docker
 Dockerfile
 .dockerignore
-nginx.conf
 
 # Documentation
 README.md
