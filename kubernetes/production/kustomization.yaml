@@ -1,0 +1,37 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: aegis-lens
+
+resources:
+  - namespace.yaml
+  - ../configmaps
+  - ../secrets
+  - ../deployments
+  - ../services
+  - ../pvcs
+  - ../ingress
+
+images:
+  - name: aegis-lens/candidate-ui
+    newName: ghcr.io/lucieran-raven/aegis-lens/candidate-ui
+    newTag: latest
+  - name: aegis-lens/hr-dashboard
+    newName: ghcr.io/lucieran-raven/aegis-lens/hr-dashboard
+    newTag: latest
+  - name: aegis-lens/agents
+    newName: ghcr.io/lucieran-raven/aegis-lens/agents
+    newTag: latest
+  - name: aegis-lens/orchestrator
+    newName: ghcr.io/lucieran-raven/aegis-lens/orchestrator
+    newTag: latest
+
+replicas:
+  - name: candidate-ui
+    count: 3
+  - name: hr-dashboard
+    count: 2
+  - name: agents
+    count: 3
+  - name: orchestrator
+    count: 2

@@ -7,7 +7,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy requirements first for better caching
 COPY requirements.txt .
@@ -22,12 +26,18 @@ COPY src/ ./src/
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 
+# Change ownership to non-root user
+RUN chown -R appuser:appuser /app
+
 # Expose port
 EXPOSE 8001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8001/health')"
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Switch to non-root user
+USER appuser
 
 # Run the application
 CMD ["uvicorn", "src.orchestrator.api:app", "--host", "0.0.0.0", "--port", "8001"]

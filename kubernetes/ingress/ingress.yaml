@@ -1,0 +1,73 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aegis-lens-ingress
+  namespace: aegis-lens
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - aegis-lens.local
+    - candidate-ui.aegis-lens.local
+    - hr-dashboard.aegis-lens.local
+    secretName: tls-secrets
+  rules:
+  - host: aegis-lens.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: candidate-ui-service
+            port:
+              number: 80
+  - host: candidate-ui.aegis-lens.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: candidate-ui-service
+            port:
+              number: 80
+  - host: hr-dashboard.aegis-lens.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hr-dashboard-service
+            port:
+              number: 80
+  - host: aegis-lens.local
+    http:
+      paths:
+      - path: /api/agents(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: agents-service
+            port:
+              number: 8000
+  - host: aegis-lens.local
+    http:
+      paths:
+      - path: /api/orchestrator(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: orchestrator-service
+            port:
+              number: 8001

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orchestrator-config
+  namespace: aegis-lens
+data:
+  LOG_LEVEL: "INFO"
+  MAX_CONCURRENT_SESSIONS: "100"
+  SESSION_TIMEOUT: "3600"
+  API_HOST: "0.0.0.0"
+  API_PORT: "8001"

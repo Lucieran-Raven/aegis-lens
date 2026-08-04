@@ -1,0 +1,182 @@
+name: CI/CD - Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'packages/**'
+      - 'kubernetes/**'
+      - '.github/workflows/ci-cd-infrastructure.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'packages/**'
+      - 'kubernetes/**'
+      - '.github/workflows/ci-cd-infrastructure.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: lucieran-raven/aegis-lens
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          - candidate-ui
+          - hr-dashboard
+          - agents
+          - orchestrator
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.package }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: packages/${{ matrix.package }}
+          file: packages/${{ matrix.package }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    strategy:
+      matrix:
+        package:
+          - candidate-ui
+          - hr-dashboard
+          - agents
+          - orchestrator
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.package }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-and-push, security-scan]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging.aegis-lens.local
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Update deployment images
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl set image deployment/candidate-ui candidate-ui=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/candidate-ui:${{ github.sha }} -n aegis-lens-staging
+          kubectl set image deployment/hr-dashboard hr-dashboard=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/hr-dashboard:${{ github.sha }} -n aegis-lens-staging
+          kubectl set image deployment/agents agents=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/agents:${{ github.sha }} -n aegis-lens-staging
+          kubectl set image deployment/orchestrator orchestrator=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/orchestrator:${{ github.sha }} -n aegis-lens-staging
+
+      - name: Rollout status
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl rollout status deployment/candidate-ui -n aegis-lens-staging --timeout=5m
+          kubectl rollout status deployment/hr-dashboard -n aegis-lens-staging --timeout=5m
+          kubectl rollout status deployment/agents -n aegis-lens-staging --timeout=5m
+          kubectl rollout status deployment/orchestrator -n aegis-lens-staging --timeout=5m
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-push, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: https://aegis-lens.local
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Update deployment images
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl set image deployment/candidate-ui candidate-ui=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/candidate-ui:${{ github.sha }} -n aegis-lens
+          kubectl set image deployment/hr-dashboard hr-dashboard=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/hr-dashboard:${{ github.sha }} -n aegis-lens
+          kubectl set image deployment/agents agents=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/agents:${{ github.sha }} -n aegis-lens
+          kubectl set image deployment/orchestrator orchestrator=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/orchestrator:${{ github.sha }} -n aegis-lens
+
+      - name: Rollout status
+        run: |
+          export KUBECONFIG=kubeconfig
+          kubectl rollout status deployment/candidate-ui -n aegis-lens --timeout=5m
+          kubectl rollout status deployment/hr-dashboard -n aegis-lens --timeout=5m
+          kubectl rollout status deployment/agents -n aegis-lens --timeout=5m
+          kubectl rollout status deployment/orchestrator -n aegis-lens --timeout=5m
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment completed'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
