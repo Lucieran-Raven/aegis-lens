@@ -59,11 +59,22 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
 
+      - name: Determine build paths
+        id: paths
+        run: |
+          if [ "${{ matrix.package }}" = "agents" ] || [ "${{ matrix.package }}" = "orchestrator" ]; then
+            echo "context=packages/${{ matrix.package }}/docker" >> $GITHUB_OUTPUT
+            echo "dockerfile=packages/${{ matrix.package }}/docker/Dockerfile" >> $GITHUB_OUTPUT
+          else
+            echo "context=packages/${{ matrix.package }}" >> $GITHUB_OUTPUT
+            echo "dockerfile=packages/${{ matrix.package }}/Dockerfile" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.package == 'agents' || matrix.package == 'orchestrator' && format('packages/{0}/docker', matrix.package) || format('packages/{0}', matrix.package) }}
-          file: ${{ matrix.package == 'agents' || matrix.package == 'orchestrator' && format('packages/{0}/docker/Dockerfile', matrix.package) || format('packages/{0}/Dockerfile', matrix.package) }}
+          context: ${{ steps.paths.outputs.context }}
+          file: ${{ steps.paths.outputs.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
