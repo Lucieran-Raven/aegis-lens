@@ -13,14 +13,12 @@ RUN apt-get update && apt-get install -y \
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copy requirements first for better caching
+# Copy requirements and source code
 COPY requirements.txt .
+COPY src/ ./src/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy source code
-COPY src/ ./src/
 
 # Set environment variables
 ENV PYTHONPATH=/app/src

@@ -12,14 +12,12 @@ RUN apt-get update && apt-get install -y \
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copy pyproject.toml first for better caching
+# Copy pyproject.toml and source code
 COPY pyproject.toml ./
+COPY src/ ./src/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -e .
-
-# Copy source code
-COPY src/ ./src/
 
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /app
