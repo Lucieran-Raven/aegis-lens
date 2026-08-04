@@ -62,11 +62,17 @@ jobs:
       - name: Determine build paths
         id: paths
         run: |
-          if [ "${{ matrix.package }}" = "agents" ] || [ "${{ matrix.package }}" = "orchestrator" ]; then
-            echo "context=packages/${{ matrix.package }}" >> $GITHUB_OUTPUT
+          if [ "${{ matrix.package }}" = "agents" ]; then
+            echo "context=packages/agents" >> $GITHUB_OUTPUT
             echo "dockerfile=docker/Dockerfile" >> $GITHUB_OUTPUT
-          else
-            echo "context=packages/${{ matrix.package }}" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.package }}" = "orchestrator" ]; then
+            echo "context=packages/orchestrator" >> $GITHUB_OUTPUT
+            echo "dockerfile=docker/Dockerfile" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.package }}" = "candidate-ui" ]; then
+            echo "context=packages/candidate-ui" >> $GITHUB_OUTPUT
+            echo "dockerfile=Dockerfile" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.package }}" = "hr-dashboard" ]; then
+            echo "context=packages/hr-dashboard" >> $GITHUB_OUTPUT
             echo "dockerfile=Dockerfile" >> $GITHUB_OUTPUT
           fi
 
