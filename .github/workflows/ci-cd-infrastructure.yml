@@ -59,28 +59,20 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix={{branch}}-
 
-      - name: Determine build paths
-        id: paths
+      - name: Set Dockerfile path
+        id: dockerfile
         run: |
-          if [ "${{ matrix.package }}" = "agents" ]; then
-            echo "context=packages/agents" >> $GITHUB_OUTPUT
-            echo "dockerfile=docker/Dockerfile" >> $GITHUB_OUTPUT
-          elif [ "${{ matrix.package }}" = "orchestrator" ]; then
-            echo "context=packages/orchestrator" >> $GITHUB_OUTPUT
-            echo "dockerfile=docker/Dockerfile" >> $GITHUB_OUTPUT
-          elif [ "${{ matrix.package }}" = "candidate-ui" ]; then
-            echo "context=packages/candidate-ui" >> $GITHUB_OUTPUT
-            echo "dockerfile=Dockerfile" >> $GITHUB_OUTPUT
-          elif [ "${{ matrix.package }}" = "hr-dashboard" ]; then
-            echo "context=packages/hr-dashboard" >> $GITHUB_OUTPUT
-            echo "dockerfile=Dockerfile" >> $GITHUB_OUTPUT
+          if [ "${{ matrix.package }}" = "agents" ] || [ "${{ matrix.package }}" = "orchestrator" ]; then
+            echo "path=packages/${{ matrix.package }}/docker/Dockerfile" >> $GITHUB_OUTPUT
+          else
+            echo "path=packages/${{ matrix.package }}/Dockerfile" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ steps.paths.outputs.context }}
-          file: ${{ steps.paths.outputs.dockerfile }}
+          context: packages/${{ matrix.package }}
+          file: ${{ steps.dockerfile.outputs.path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
