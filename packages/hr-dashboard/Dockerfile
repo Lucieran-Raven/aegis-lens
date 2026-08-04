@@ -38,7 +38,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
 
 # Run nginx as non-root user
-RUN addgroup -g 1001 -S nginx && \
+RUN addgroup --g 1001 -S nginx || true && \
     adduser -S -D -H -u 1001 -h /usr/share/nginx/html -s /sbin/nologin -G nginx -g nginx nginx && \
     chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
