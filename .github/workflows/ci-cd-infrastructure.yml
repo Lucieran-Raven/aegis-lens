@@ -62,8 +62,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: packages/${{ matrix.package }}
-          file: packages/${{ matrix.package }}/Dockerfile
+          context: ${{ matrix.package == 'agents' || matrix.package == 'orchestrator' && format('packages/{0}/docker', matrix.package) || format('packages/{0}', matrix.package) }}
+          file: ${{ matrix.package == 'agents' || matrix.package == 'orchestrator' && format('packages/{0}/docker/Dockerfile', matrix.package) || format('packages/{0}/Dockerfile', matrix.package) }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
