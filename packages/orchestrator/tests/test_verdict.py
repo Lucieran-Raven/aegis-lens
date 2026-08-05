@@ -4,13 +4,13 @@ Unit tests for Verdict Generation Module
 
 import pytest
 from datetime import datetime
-from orchestrator.verdict import (
+from src.orchestrator.verdict import (
     VerdictGenerator,
     Verdict,
     VerdictStatus,
     VerdictEvidence,
 )
-from orchestrator.bayesian_engine import (
+from src.orchestrator.bayesian_engine import (
     AgentResult,
     AgentStatus,
     BayesianEngine,

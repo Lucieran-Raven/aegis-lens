@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 from datetime import datetime
-from orchestrator.workflow import Task, TaskStatus, Workflow
+from src.orchestrator.workflow import Task, TaskStatus, Workflow
 
 
 def test_task_creation():

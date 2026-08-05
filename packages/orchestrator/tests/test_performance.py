@@ -9,13 +9,13 @@ import pytest
 import time
 from typing import List
 
-from orchestrator.bayesian_engine import (
+from src.orchestrator.bayesian_engine import (
     BayesianEngine,
     AgentResult,
     AgentStatus,
 )
-from orchestrator.verdict import VerdictGenerator
-from orchestrator.recommendation import RecommendationEngine
+from src.orchestrator.verdict import VerdictGenerator
+from src.orchestrator.recommendation import RecommendationEngine
 
 
 class TestBayesianEnginePerformance:
