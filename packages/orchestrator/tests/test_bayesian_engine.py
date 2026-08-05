@@ -4,7 +4,7 @@ Unit tests for Bayesian Engine
 
 import pytest
 import numpy as np
-from src.orchestrator.bayesian_engine import (
+from orchestrator.bayesian_engine import (
     BayesianEngine,
     AgentResult,
     AgentStatus,

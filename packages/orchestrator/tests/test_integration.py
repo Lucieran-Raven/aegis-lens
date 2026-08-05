@@ -9,16 +9,16 @@ import pytest
 from starlette.testclient import TestClient
 from unittest.mock import patch, AsyncMock
 
-from src.orchestrator.api import app
-from src.orchestrator.bayesian_engine import (
+from orchestrator.api import app
+from orchestrator.bayesian_engine import (
     BayesianEngine,
     AgentResult,
     AgentStatus,
     PriorParameters,
     AgentWeights,
 )
-from src.orchestrator.verdict import VerdictGenerator, VerdictStatus
-from src.orchestrator.recommendation import RecommendationEngine
+from orchestrator.verdict import VerdictGenerator, VerdictStatus
+from orchestrator.recommendation import RecommendationEngine
 
 
 @pytest.fixture
