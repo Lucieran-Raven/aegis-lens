@@ -7,12 +7,22 @@ on:
       - 'docker-compose.yml'
       - '.env.example'
       - 'docker/**'
+      - 'packages/agents/**'
+      - 'packages/orchestrator/**'
+      - 'packages/signaling/**'
+      - 'packages/candidate-ui/**'
+      - 'packages/hr-dashboard/**'
   pull_request:
     branches: [main, develop]
     paths:
       - 'docker-compose.yml'
       - '.env.example'
       - 'docker/**'
+      - 'packages/agents/**'
+      - 'packages/orchestrator/**'
+      - 'packages/signaling/**'
+      - 'packages/candidate-ui/**'
+      - 'packages/hr-dashboard/**'
   workflow_dispatch:
 
 jobs:

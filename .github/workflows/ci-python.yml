@@ -5,24 +5,12 @@ on:
     branches: [main, develop]
     paths:
       - 'packages/agents/**'
-      - 'packages/nova/**'
-      - 'packages/sentient/**'
-      - 'packages/aura/**'
-      - 'packages/kai/**'
-      - 'packages/spider/**'
-      - 'packages/oracle/**'
       - 'packages/orchestrator/**'
       - '.github/workflows/ci-python.yml'
   pull_request:
     branches: [main, develop]
     paths:
       - 'packages/agents/**'
-      - 'packages/nova/**'
-      - 'packages/sentient/**'
-      - 'packages/aura/**'
-      - 'packages/kai/**'
-      - 'packages/spider/**'
-      - 'packages/oracle/**'
       - 'packages/orchestrator/**'
       - '.github/workflows/ci-python.yml'
 
@@ -36,7 +24,7 @@ jobs:
     
     strategy:
       matrix:
-        package: [agents, nova, sentient, aura, kai, spider, oracle, orchestrator]
+        package: [agents, orchestrator]
     
     steps:
       - name: Checkout code
