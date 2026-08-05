@@ -9,9 +9,8 @@ import os
 
 # Add src directory to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src', 'orchestrator'))
 
-from api import app
+from orchestrator.api import app
 
 if __name__ == "__main__":
     import uvicorn

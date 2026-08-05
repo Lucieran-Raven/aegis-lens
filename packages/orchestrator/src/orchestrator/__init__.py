@@ -2,21 +2,21 @@
 Aegis Orchestrator - Bayesian Engine for AI Agent Fusion
 """
 
-from workflow import Workflow, Task, TaskStatus
-from bayesian_engine import (
+from .workflow import Workflow, Task, TaskStatus
+from .bayesian_engine import (
     BayesianEngine,
     AgentResult,
     AgentStatus,
     PriorParameters,
     AgentWeights,
 )
-from verdict import (
+from .verdict import (
     VerdictGenerator,
     Verdict,
     VerdictStatus,
     VerdictEvidence,
 )
-from recommendation import (
+from .recommendation import (
     RecommendationEngine,
     Recommendation,
     RecommendationReport,
