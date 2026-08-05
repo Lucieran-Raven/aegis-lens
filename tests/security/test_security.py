@@ -352,6 +352,7 @@ class TestInputValidation:
                 "' UNION SELECT",
                 "1=1",
                 "DROP TABLE",
+                "--",
                 "xp_cmdshell"
             ]
             
@@ -365,7 +366,7 @@ class TestInputValidation:
             
             return {"status": "accepted"}
         
-        malicious_input = "SELECT * FROM users WHERE name = 'admin' --"
+        malicious_input = "SELECT * FROM users WHERE name = 'admin' OR '1'='1'"
         safe_input = "SELECT name FROM users WHERE id = 1"
         
         malicious_result = validate_sql_input(malicious_input)
