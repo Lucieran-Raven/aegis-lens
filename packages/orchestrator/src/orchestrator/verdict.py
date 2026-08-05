@@ -12,7 +12,7 @@ from enum import Enum
 from datetime import datetime, timezone
 import logging
 
-from src.orchestrator.bayesian_engine import (
+from .bayesian_engine import (
     BayesianEngine,
     AgentResult,
     AgentStatus,
