@@ -14,11 +14,13 @@ RUN apt-get update && apt-get install -y \
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy requirements and source code
-COPY requirements.txt .
+COPY pyproject.toml ./
+COPY requirements.txt ./
 COPY src/ ./src/
+COPY app.py ./
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -e .
 
 # Set environment variables
 ENV PYTHONPATH=/app/src
@@ -28,14 +30,14 @@ ENV PYTHONUNBUFFERED=1
 RUN chown -R appuser:appuser /app
 
 # Expose port
-EXPOSE 8001
+EXPOSE 8082
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8001/health || exit 1
+    CMD curl -f http://localhost:8082/health || exit 1
 
 # Switch to non-root user
 USER appuser
 
 # Run the application
-CMD ["uvicorn", "src.orchestrator.api:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8082"]

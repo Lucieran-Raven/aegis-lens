@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 
-from src.base import BaseAgent, AgentConfig, AgentResult, AgentStatus
+from base import BaseAgent, AgentConfig, AgentResult, AgentStatus
 
 
 class OrchestratorStrategy(Enum):

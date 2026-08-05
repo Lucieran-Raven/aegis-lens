@@ -14,15 +14,15 @@ from datetime import datetime, timezone
 import logging
 import traceback
 
-from src.orchestrator.bayesian_engine import (
+from bayesian_engine import (
     BayesianEngine,
     AgentResult,
     AgentStatus,
     PriorParameters,
     AgentWeights,
 )
-from src.orchestrator.verdict import VerdictGenerator, Verdict
-from src.orchestrator.recommendation import RecommendationEngine, RecommendationReport
+from verdict import VerdictGenerator, Verdict
+from recommendation import RecommendationEngine, RecommendationReport
 
 
 class OrchestratorError(Exception):

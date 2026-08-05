@@ -76,23 +76,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Physics Engine - Rust-based physics data collection
-  physics-engine:
-    build:
-      context: ./packages/physics-engine
-      dockerfile: Dockerfile
-    container_name: aegis-physics-engine
-    ports:
-      - "8080:8080"
-    environment:
-      - RUST_LOG=info
-      - REDIS_URL=redis://redis:6379
-    networks:
-      - aegis-network
-    depends_on:
-      redis:
-        condition: service_healthy
-
   # Agents Service - Python-based analysis agents
   agents:
     build:
@@ -105,7 +88,7 @@ services:
       - AGENT_PORT=8081
       - REDIS_URL=redis://redis:6379
       - POSTGRES_URL=postgresql://aegis:${PG_PASSWORD:-aegis_dev_password}@postgres:5432/aegis
-      - PHYSICS_ENGINE_URL=http://physics-engine:8080
+      - REDIS_ENABLED=false
     networks:
       - aegis-network
     depends_on:
@@ -113,8 +96,6 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      physics-engine:
-        condition: service_started
 
   # Orchestrator Service - Python-based orchestration
   orchestrator:
@@ -154,8 +135,7 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - SIGNALING_PORT=8083
-      - REDIS_URL=redis://redis:6379
+      - PORT=8083
     networks:
       - aegis-network
     depends_on:
@@ -172,13 +152,10 @@ services:
       - "3002:3000"
     environment:
       - VITE_API_URL=http://localhost:8083
-      - VITE_PHYSICS_ENGINE_URL=http://localhost:8080
     networks:
       - aegis-network
     depends_on:
       signaling:
-        condition: service_started
-      physics-engine:
         condition: service_started
 
   # HR Dashboard - React-based HR interface

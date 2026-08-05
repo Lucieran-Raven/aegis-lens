@@ -13,8 +13,8 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import os
 
-from src.base import BaseAgent, AgentConfig, AgentResult, AgentStatus, AgentPriority
-from src.redis_client import RedisManager
+from base import BaseAgent, AgentConfig, AgentResult, AgentStatus, AgentPriority
+from redis_client import RedisManager
 
 
 # Pydantic models for API requests/responses

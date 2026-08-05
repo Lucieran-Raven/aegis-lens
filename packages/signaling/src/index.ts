@@ -1,4 +1,5 @@
 import { WebSocketServer, WebSocket } from 'ws';
+import { createServer } from 'http';
 
 interface Client {
   id: string;
@@ -6,7 +7,18 @@ interface Client {
   roomId?: string;
 }
 
-const wss = new WebSocketServer({ port: 8080 });
+const PORT = process.env.PORT || 8083;
+const server = createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'healthy', service: 'signaling' }));
+  } else {
+    res.writeHead(404);
+    res.end('Not found');
+  }
+});
+
+const wss = new WebSocketServer({ server });
 const clients: Map<string, Client> = new Map();
 
 wss.on('connection', (ws: WebSocket) => {
@@ -61,4 +73,6 @@ function broadcastToRoom(roomId: string, message: any, excludeClientId?: string)
   }
 }
 
-console.log('Signaling server running on port 8080');
+server.listen(PORT, () => {
+  console.log(`Signaling server running on port ${PORT}`);
+});
