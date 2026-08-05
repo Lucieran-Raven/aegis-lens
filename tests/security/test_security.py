@@ -436,7 +436,7 @@ class TestInputValidation:
         assert safe_result["status"] == "accepted"
 
 
-class TestAPI Security:
+class TestAPISecurity:
     """Security tests for API endpoints"""
 
     def test_rate_limiting(self):

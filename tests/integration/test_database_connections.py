@@ -412,7 +412,7 @@ class TestDatabaseSchema:
         
         # Validate indexes
         assert len(indexes) == 4
-        assert sum(1 for idx in indexes if idx["unique"]) == 3
+        assert sum(1 for idx in indexes if idx.get("unique")) == 3
 
 
 class TestDatabaseDataIntegrity:

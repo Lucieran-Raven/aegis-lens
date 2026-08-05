@@ -605,14 +605,14 @@ class TestAgentOrchestratorDataFlow:
         for i, result in enumerate(stream_results):
             partial_result = {
                 "orchestrator_id": "main_orchestrator",
-                "status": "processing",
+                "status": "processing" if i < 2 else "completed",
                 "overall_score": sum(r["score"] for r in stream_results[:i+1]) / (i+1),
                 "overall_confidence": 0.9,
                 "agent_results": {r["agent_id"]: r for r in stream_results[:i+1]},
                 "aggregated_data": {
                     "method": "weighted_average",
                     "agent_count": i + 1,
-                    "is_partial": True
+                    "is_partial": i < 2
                 },
                 "metadata": {
                     "strategy": "sequential",

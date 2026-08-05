@@ -82,7 +82,7 @@ class TestAgentsStress:
             return {
                 "iterations": iterations,
                 "successful": sum(1 for r in results if r["status"] == "completed"),
-                "memory_errors": sum(1 for r in results if r["error"] == "MemoryError")
+                "memory_errors": sum(1 for r in results if r.get("error") == "MemoryError")
             }
         
         result = run_memory_pressure(iterations=100)
@@ -477,8 +477,8 @@ class TestAPIStress:
             return {
                 "request_count": request_count,
                 "successful": sum(1 for r in results if r["status"] == "completed"),
-                "rate_limited": sum(1 for r in results if r["error"] == "Rate limit exceeded"),
-                "other_errors": sum(1 for r in results if r["status"] == "error" and r["error"] != "Rate limit exceeded")
+                "rate_limited": sum(1 for r in results if r.get("error") == "Rate limit exceeded"),
+                "other_errors": sum(1 for r in results if r["status"] == "error" and r.get("error") != "Rate limit exceeded")
             }
         
         result = run_rate_limit_breach(request_count=1000)

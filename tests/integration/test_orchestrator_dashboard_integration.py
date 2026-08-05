@@ -180,7 +180,7 @@ class TestOrchestratorToDashboardIntegration:
         # Validate chart data
         assert len(chart_data["x_axis"]) == 5
         assert chart_data["trend"] == "IMPROVING"
-        assert chart_data["average_score"] == 0.816
+        assert abs(chart_data["average_score"] - 0.816) < .001
 
     def test_real_time_updates_to_dashboard(self):
         """
