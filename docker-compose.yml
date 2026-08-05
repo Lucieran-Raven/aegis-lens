@@ -76,6 +76,130 @@ services:
       timeout: 5s
       retries: 5
 
+  # Physics Engine - Rust-based physics data collection
+  physics-engine:
+    build:
+      context: ./packages/physics-engine
+      dockerfile: Dockerfile
+    container_name: aegis-physics-engine
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - aegis-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Agents Service - Python-based analysis agents
+  agents:
+    build:
+      context: ./packages/agents
+      dockerfile: docker/Dockerfile
+    container_name: aegis-agents
+    ports:
+      - "8081:8081"
+    environment:
+      - AGENT_PORT=8081
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://aegis:${PG_PASSWORD:-aegis_dev_password}@postgres:5432/aegis
+      - PHYSICS_ENGINE_URL=http://physics-engine:8080
+    networks:
+      - aegis-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      physics-engine:
+        condition: service_started
+
+  # Orchestrator Service - Python-based orchestration
+  orchestrator:
+    build:
+      context: ./packages/orchestrator
+      dockerfile: docker/Dockerfile
+    container_name: aegis-orchestrator
+    ports:
+      - "8082:8082"
+    environment:
+      - ORCHESTRATOR_PORT=8082
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_URL=postgresql://aegis:${PG_PASSWORD:-aegis_dev_password}@postgres:5432/aegis
+      - AGENTS_URL=http://agents:8081
+      - TIMESCALE_URL=postgresql://aegis:${TIMESCALE_PASSWORD:-aegis_dev_password}@timescaledb:5432/aegis_metrics
+      - NEO4J_URL=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-aegis_dev_password}
+    networks:
+      - aegis-network
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      agents:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
+
+  # Signaling Server - WebSocket signaling for WebRTC
+  signaling:
+    build:
+      context: ./packages/signaling
+      dockerfile: Dockerfile
+    container_name: aegis-signaling
+    ports:
+      - "8083:8083"
+    environment:
+      - SIGNALING_PORT=8083
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - aegis-network
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Candidate UI - React-based candidate interface
+  candidate-ui:
+    build:
+      context: ./packages/candidate-ui
+      dockerfile: Dockerfile
+    container_name: aegis-candidate-ui
+    ports:
+      - "3002:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8083
+      - VITE_PHYSICS_ENGINE_URL=http://localhost:8080
+    networks:
+      - aegis-network
+    depends_on:
+      signaling:
+        condition: service_started
+      physics-engine:
+        condition: service_started
+
+  # HR Dashboard - React-based HR interface
+  hr-dashboard:
+    build:
+      context: ./packages/hr-dashboard
+      dockerfile: Dockerfile
+    container_name: aegis-hr-dashboard
+    ports:
+      - "3003:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8082
+      - VITE_SIGNALING_URL=http://localhost:8083
+    networks:
+      - aegis-network
+    depends_on:
+      orchestrator:
+        condition: service_started
+      signaling:
+        condition: service_started
+
 networks:
   aegis-network:
     driver: bridge
