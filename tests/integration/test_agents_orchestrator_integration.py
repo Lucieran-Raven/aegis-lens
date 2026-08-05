@@ -620,7 +620,7 @@ class TestAgentOrchestratorDataFlow:
                 }
             }
             
-            assert partial_result["aggregated_data"]["is_partial"] is True if i < 2 else False
+            assert partial_result["aggregated_data"]["is_partial"] == (i < 2)
 
     def test_agent_result_validation(self):
         """Test that orchestrator validates agent results"""
